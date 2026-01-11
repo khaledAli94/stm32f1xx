@@ -3,14 +3,15 @@
         {
             "name": "arm",
             "includePath": [
-                "${workspaceFolder}/**"
+                "${workspaceFolder}/**",
+                // "/usr/lib/arm-none-eabi/include/"
             ],
 
             "defines": [],
             "cStandard": "c99",
             "cppStandard": "${default}",
             "intelliSenseMode": "gcc-arm",
-            // "compilerPath": "arm-none-linux-gnueabihf-gcc"
+            "compilerPath": "/usr/bin/arm-none-eabi-gcc"
         }
     ],
     "version": 4
