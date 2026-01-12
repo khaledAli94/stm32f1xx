@@ -21,11 +21,3 @@ void tim1_init(void) {
 
     NVIC_EnableIRQ(TIM1_UP_IRQn);
 }
-
-
-
-
-void TIM1_UP_IRQHandler(void) {
-    TIM1->SR &= ~1U;              // Clear update flag
-    GPIOC->ODR ^= (1 << 13);     // Toggle LED
-}

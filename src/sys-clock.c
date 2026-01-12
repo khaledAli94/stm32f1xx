@@ -14,7 +14,3 @@ void sys_clock_init(void){
      */
     SYSTICK->CTRL = (1 << 2) | (1 << 1) | (1 << 0);
 }
-
-void SysTick_Handler(void) {
-    GPIOC->ODR ^= (1U << 13);
-}

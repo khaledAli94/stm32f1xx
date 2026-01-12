@@ -72,3 +72,8 @@ struct nvic_t {
     unsigned RESERVED4[56];
     volatile unsigned IPR[60];     // 0x300 Interrupt Priority Registers
 };
+
+
+
+void NVIC_EnableIRQ(unsigned irq);
+void NVIC_DisableIRQ(unsigned irq);
