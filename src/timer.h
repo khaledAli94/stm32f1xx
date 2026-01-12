@@ -53,3 +53,6 @@ struct timer_t {
     volatile unsigned DCR;        // 0x48 DMA Control Register
     volatile unsigned DMAR;       // 0x4C DMA Address Register
 };
+
+
+void tim1_init(void);

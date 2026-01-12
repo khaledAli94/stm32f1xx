@@ -6,7 +6,6 @@
 void tim1_init(void) {
     // Enable clocks
     RCC->APB2ENR |= (1 << 11);   // TIM1 clock
-    RCC->APB2ENR |= (1 << 4);    // GPIOC clock
 
     // Configure PC13 as push‑pull output
     GPIOC->CRH &= ~(0xF << 20);

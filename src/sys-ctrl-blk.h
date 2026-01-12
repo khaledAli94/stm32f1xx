@@ -1,3 +1,6 @@
+#define SCB_BASE 0xe000ed00UL
+#define SCB ((volatile struct scb_t *) SCB_BASE)
+
 struct scb_t {
     volatile unsigned CPUID;      // 0x00
     volatile unsigned ICSR;       // 0x04
@@ -16,5 +19,3 @@ struct scb_t {
     volatile unsigned BFAR;       // 0x38
 };
 
-#define SCB_BASE 0xe000ed00UL
-#define SCB ((volatile struct scb_t *) SCB_BASE)

@@ -2,14 +2,18 @@
 #include <clock.h>
 #include <gpio.h>
 #include <nested-vector.h>
+#include <sys-ctrl-blk.h>
 
 extern volatile unsigned char  _sbss[], _ebss [], _etext[] ;
 extern volatile unsigned char   _sdata[] , _edata[];
 extern volatile unsigned long  _estack[];
+extern unsigned g_pfnVectors;
 
-void syscpyself(){
+void crt0_init(){
     volatile unsigned long *src, *dst;
     volatile unsigned char *byte_src, *byte_dst;
+
+    SCB->VTOR = g_pfnVectors;
     // Copy initialized data from Flash to RAM (optimize for large chunks)
     src = (unsigned long *) &_etext;
     dst = (unsigned long *) &_sdata;
@@ -27,24 +31,6 @@ void syscpyself(){
 }
 
 int main(){
-    // Enable GPIOC clock (IOPCEN = bit 4) 	
-    RCC->APB2ENR |= (1UL<<4); 
-    // Configure PC13 as push‑pull output, 2 MHz
-    // PC13 is in CRH (pins 8–15)
-    GPIOC->CRH &= ~(0xF << 20); // clear CNF13 + MODE13
-    GPIOC->CRH |= (0x2 << 20); // MODE13 = 10 (2 MHz), CNF13 = 00 (push‑pull)
-
-
-    // Enable TIM2 clock (bit 0 on APB1)
-    RCC->APB1ENR |= (1 << 0);
-    // Timer frequency = 72 MHz / (PSC+1)
-    TIM2->PSC = 7200 - 1;      // 10 kHz timer clock
-    TIM2->ARR = 10000 - 1;     // overflow every 1 second
-
-    TIM2->DIER |= 1;           // UIE: update interrupt enable
-    TIM2->CR1  |= 1;           // CEN: counter enable
-
-    NVIC_EnableIRQ(28);        // TIM2 IRQ number = 28
-
+    tim1_init();
     return 0;
 }

@@ -21,7 +21,7 @@ CFLAGS 	+= $(DEFINES) $(MCFLAGS) -g3 -ggdb -Wall -O0 -ffunction-sections -fdata-
 ASFLAGS	+= $(DEFINES) -x assembler-with-cpp $(MCFLAGS) -g3 -ggdb -Wall -O0 -ffunction-sections -fdata-sections -ffreestanding -std=gnu99 -fomit-frame-pointer -fdump-rtl-expand
 
 # nano.specs automatically adds -lc_nano
-LDFLAGS	= -T ./src/memlayout.ld -Wl,-Map=./$(TARGET).map -Wl,--gc-sections -Wl,--cref -z noexecstack  -nostdlib -nostartfiles
+LDFLAGS	= -T ./memlayout.ld -Wl,-Map=./$(TARGET).map -Wl,--gc-sections -Wl,--cref -z noexecstack  -nostdlib -nostartfiles
 
 
 export CC LD ASFLAGS CFLAGS INCDIRS

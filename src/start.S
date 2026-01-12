@@ -1,25 +1,17 @@
-  .syntax unified
-  .cpu cortex-m3
-  .fpu softvfp
-  .thumb
-
-
-
 .equ  BootRAM, 0xF108F85F
-.word _sidata
-.word _sdata
-.word _edata
-.word _sbss
-.word _ebss
+
+.syntax unified
+.cpu cortex-m3
+.fpu softvfp
+.thumb
 
 
 .section .text.Reset_Handler
 .weak Reset_Handler
 .type Reset_Handler, %function
 Reset_Handler:
-
-  bl sys_clock_init
-  bl syscpyself
+  bl sys_tick_init
+  bl crt0_init
   bl main
 
   b .
@@ -38,6 +30,13 @@ Reset_Handler:
 Default_Handler:
   b .
   .size Default_Handler, .-Default_Handler
+
+.word _sidata
+.word _sdata
+.word _edata
+.word _sbss
+.word _ebss
+
 /******************************************************************************
 *
 * The minimal vector table for a Cortex M3.  Note that the proper constructs
@@ -45,7 +44,7 @@ Default_Handler:
 * 0x0000.0000.
 *
 ******************************************************************************/
-.align 5
+.align 7
   .section .isr_vector,"a",%progbits
   .type g_pfnVectors, %object
   .size g_pfnVectors, .-g_pfnVectors
@@ -117,5 +116,4 @@ g_pfnVectors:
 .word 0
 .word 0
 .word 0
-.word BootRAM          /* @0x108. This is for boot in RAM mode for
-                            STM32F10x Medium Density devices. */
+.word BootRAM          /* @0x108. This is for boot in RAM mode for STM32F10x Medium Density devices. */

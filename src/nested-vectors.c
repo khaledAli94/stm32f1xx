@@ -14,7 +14,6 @@ void SVC_Handler(void){}
 void DebugMon_Handler(void){}
 
 void PendSV_Handler(void){}
-__attribute__((interrupt("IRQ")))
 void SysTick_Handler(void){
   GPIOC->ODR ^= (1U << 13);
 }
@@ -43,13 +42,13 @@ void CAN1_RX1_IRQHandler(void){}
 void CAN1_SCE_IRQHandler(void){}
 void EXTI9_5_IRQHandler(void){}
 void TIM1_BRK_IRQHandler(void){}
-void TIM1_UP_IRQHandler(void){}
+__attribute__((interrupt("IRQ")))
+void TIM1_UP_IRQHandler(void){
+  TIM1->SR &= ~1U;              // Clear update flag
+}
 void TIM1_TRG_COM_IRQHandler(void){}
 void TIM1_CC_IRQHandler(void){}
-void TIM2_IRQHandler(void){
-  TIM1->SR &= ~1U;              // Clear update flag
-  GPIOC->ODR ^= (1 << 13);     // Toggle LED
-}
+void TIM2_IRQHandler(void){}
 void TIM3_IRQHandler(void){}
 void TIM4_IRQHandler(void){}
 void I2C1_EV_IRQHandler(void){}
@@ -64,3 +63,12 @@ void USART3_IRQHandler(void){}
 void EXTI15_10_IRQHandler(void){}
 void RTC_Alarm_IRQHandler(void){}
 void USBWakeUp_IRQHandler(void){}
+
+
+void NVIC_EnableIRQ(enum IRQn_t irq) {
+    NVIC->ISER[irq >> 5] = (1U << (irq & 0x1F));
+}
+
+void NVIC_DisableIRQ(enum IRQn_t irq) {
+    NVIC->ICER[irq >> 5] = (1U << (irq & 0x1F));
+}

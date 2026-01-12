@@ -1,7 +1,7 @@
 #define NVIC_BASE 0xe000e100UL
 #define NVIC ((volatile struct nvic_t *) NVIC_BASE)
 
-enum IRQn_t{
+enum IRQn_t {
 /******  Cortex-M3 Processor Exceptions Numbers ***************************************************/
   NonMaskableInt_IRQn         = -14,    /*!< 2 Non Maskable Interrupt                             */
   HardFault_IRQn              = -13,    /*!< 3 Cortex-M3 Hard Fault Interrupt                     */
@@ -74,6 +74,6 @@ struct nvic_t {
 };
 
 
-
-void NVIC_EnableIRQ(unsigned irq);
-void NVIC_DisableIRQ(unsigned irq);
+// func prototypes
+void NVIC_EnableIRQ(enum IRQn_t irq);
+void NVIC_DisableIRQ(enum IRQn_t irq);

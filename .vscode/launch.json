@@ -8,26 +8,18 @@
 
             "servertype": "openocd",
             "cwd": "${workspaceFolder}",
-            "executable": "${workspaceFolder}/bootloader.elf",
+            "executable": "${workspaceFolder}/src/bootloader.elf",
 
             "device": "STM32F103C8",
             "interface": "swd",
-            "svdFile": "${workspaceFolder}/stm32.svd",
+            "svdFile": "${workspaceFolder}/.vscode/stm32.svd",
             "runToEntryPoint": "Reset_Handler",
             "configFiles": [
                 "interface/stlink.cfg",
                 "target/stm32f1x.cfg"
             ],
 
-            "showDevDebugOutput": "none",
-            "setupCommands": [
-                {
-                    "description": "Enable pretty-printing for gdb",
-                    "text": "-enable-pretty-printing",
-                    "ignoreFailures": true
-                },
-                { "text": "set output-radix 16" }
-            ]
+            "showDevDebugOutput": "none"
         }
     ]
 }
