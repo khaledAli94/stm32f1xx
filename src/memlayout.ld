@@ -1,3 +1,5 @@
+OUTPUT_FORMAT("elf32-littlearm", "elf32-bigarm", "elf32-littlearm")
+OUTPUT_ARCH(arm)
 ENTRY(Reset_Handler)
 
 /* Highest address of the user mode stack */
@@ -10,8 +12,8 @@ _Min_Stack_Size = 0x400; /* required amount of stack */
 /* Specify the memory areas */
 MEMORY
 {
-    flash (rx)      : ORIGIN = 0x08000000, LENGTH = 128K
     ram (xrw)       : ORIGIN = 0x20000000, LENGTH = 20K
+    flash (rx)      : ORIGIN = 0x08000000, LENGTH = 128K
 }
 
 /* Define output sections */
