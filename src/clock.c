@@ -209,6 +209,9 @@ void rcc_spi1_reset(void) {
     RCC->APB2RSTR &= ~(1 << 12);  /* Clear SPI1RST bit (bit 12) */
 }
 
+
+
+
 /* System Clock Configuration Examples */
 void rcc_sysclk_hsi_64mhz(void) {
     /* Configure system clock to 64MHz using HSI */

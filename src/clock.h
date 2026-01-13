@@ -165,3 +165,48 @@ enum usb_prescaler {
     USB_DIV_1_5 = 0,    /* PLL clock divided by 1.5 */
     USB_DIV_1   = 1     /* PLL clock not divided */
 };
+
+
+
+void rcc_hsi_enable(void);
+void rcc_hsi_disable(void);
+void rcc_hse_enable(void);
+void rcc_hse_disable(void);
+void rcc_hse_bypass_enable(int enable);
+void rcc_pll_enable(void);
+void rcc_pll_disable(void);
+void rcc_pll_config(unsigned source, unsigned multiplier);
+void rcc_sysclk_config(unsigned source);
+void rcc_ahb_prescaler_config(unsigned prescaler);
+void rcc_apb1_prescaler_config(unsigned prescaler);
+void rcc_apb2_prescaler_config(unsigned prescaler); 
+void rcc_adc_prescaler_config(unsigned prescaler);
+void rcc_usb_prescaler_config(unsigned prescaler); 
+void rcc_mco_config(unsigned source);
+void rcc_gpioa_enable(void);
+void rcc_gpiob_enable(void);
+void rcc_gpioc_enable(void);
+void rcc_gpiod_enable(void);
+void rcc_spi1_enable(void);
+void rcc_spi2_enable(void);
+void rcc_usart1_enable(void);
+void rcc_usart2_enable(void);
+void rcc_i2c1_enable(void);
+void rcc_i2c2_enable(void);
+void rcc_tim1_enable(void);
+void rcc_tim2_enable(void);
+void rcc_dma1_enable(void);
+void rcc_afio_enable(void);
+void rcc_adc1_enable(void);
+void rcc_gpioa_reset(void);
+
+void rcc_spi1_reset(void);
+void rcc_sysclk_hsi_64mhz(void);
+void rcc_sysclk_hse_72mhz(void);
+void rcc_sysclk_default(void);
+unsigned rcc_get_sysclk_frequency(void);
+unsigned rcc_get_hclk_frequency(void);
+unsigned rcc_get_pclk1_frequency(void);
+void rcc_deinit(void);
+void init_spi1_with_clocks(void);
+void print_clock_frequencies(void);

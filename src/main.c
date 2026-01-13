@@ -33,7 +33,30 @@ void crt0_init(void){
 }
 
 int main(){
+    init_spi1_with_clocks();
     
+    // Set SPI mode 0 (CPOL=0, CPHA=0)
+    spi_set_mode(SPI1, 0, 0);
+    
+    // Set MSB first (default)
+    spi_set_lsb_first(SPI1, 0);
+    
+    // Set 8-bit data size (default)
+    spi_set_data_size(SPI1, 0);
+    
+    // Transfer a byte
+    unsigned char received = spi_transfer_byte(SPI1, 0x55);
+    
+    // Send array of bytes
+    unsigned char tx_data[] = {0x01, 0x02, 0x03};
+    spi_transmit_bytes(SPI1, tx_data, 3);
+    
+    // Receive array of bytes
+    unsigned char rx_data[3];
+    spi_receive_bytes(SPI1, rx_data, 3);
+
+
+
     tim1_init();
     return 0;
 }

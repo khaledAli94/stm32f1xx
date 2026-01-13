@@ -1,4 +1,6 @@
 #include <spi.h>
+#include <gpio.h>
+#include <clock.h>
 
 /* SPI Driver Functions */
 void spi_init_master(volatile struct spi_t *spi, unsigned baud_rate) {
@@ -181,7 +183,7 @@ int main(void) {
     gpio_pin_set_high(A, PIN_3);  // DC high (data mode default)
     gpio_pin_set_high(A, PIN_2);  // RESET high
 
-    
+
     // First enable SPI1 clock in RCC
     // RCC->APB2ENR |= (1 << 12);
     
