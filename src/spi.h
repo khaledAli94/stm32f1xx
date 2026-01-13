@@ -72,3 +72,40 @@ struct spi_t {
                                // 0:15 = TXCRC[15:0] (Transmitted CRC value)
                                // Note: Contains CRC of last transmitted block when CRCEN=1
 };
+
+
+struct spi1_t {
+    volatile unsigned CR1;     // 0x00
+    volatile unsigned CR2;     // 0x04
+    volatile unsigned SR;      // 0x08
+    volatile unsigned DR;      // 0x0C
+    volatile unsigned CRCPR;   // 0x10
+    volatile unsigned RXCRCR;  // 0x14
+    volatile unsigned TXCRCR;  // 0x18
+};
+
+/* Baud rate prescaler constants */
+#define SPI_BAUD_DIV2     0
+#define SPI_BAUD_DIV4     1
+#define SPI_BAUD_DIV8     2
+#define SPI_BAUD_DIV16    3
+#define SPI_BAUD_DIV32    4
+#define SPI_BAUD_DIV64    5
+#define SPI_BAUD_DIV128   6
+#define SPI_BAUD_DIV256   7
+
+/* SPI Driver Functions */
+void spi_init_master(volatile struct spi_t *spi, unsigned baud_rate);
+void spi_init_slave(volatile struct spi_t *spi);
+void spi_set_mode(volatile struct spi_t *spi, int cpol, int cpha);
+void spi_set_data_size(volatile struct spi_t *spi, int is_16bit);
+unsigned char spi_transfer_byte(volatile struct spi_t *spi, unsigned char data);
+unsigned short spi_transfer_short(volatile struct spi_t *spi, unsigned short data);
+void spi_transmit_bytes(volatile struct spi_t *spi, unsigned char *data, int length);
+void spi_receive_bytes(volatile struct spi_t *spi, unsigned char *buffer, int length);
+int spi_is_busy(volatile struct spi_t *spi);
+int spi_tx_buffer_empty(volatile struct spi_t *spi);
+int spi_rx_buffer_ready(volatile struct spi_t *spi);
+void spi_enable(volatile struct spi_t *spi);
+void spi_disable(volatile struct spi_t *spi);
+void spi_set_lsb_first(volatile struct spi_t *spi, int lsb_first);
