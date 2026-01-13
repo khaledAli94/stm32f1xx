@@ -10,8 +10,8 @@
 .weak Reset_Handler
 .type Reset_Handler, %function
 Reset_Handler:
-  bl sys_tick_init
   bl crt0_init
+  bl sys_tick_init
   bl main
 
   b .

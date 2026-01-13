@@ -7,13 +7,14 @@
 extern volatile unsigned char  _sbss[], _ebss [], _etext[] ;
 extern volatile unsigned char   _sdata[] , _edata[];
 extern volatile unsigned long  _estack[];
-extern unsigned g_pfnVectors;
+extern void (* const g_pfnVectors[])(void);
 
-void crt0_init(){
+void crt0_init(void){
     volatile unsigned long *src, *dst;
     volatile unsigned char *byte_src, *byte_dst;
 
-    SCB->VTOR = g_pfnVectors;
+    SCB->VTOR = (unsigned)g_pfnVectors;
+
     // Copy initialized data from Flash to RAM (optimize for large chunks)
     src = (unsigned long *) &_etext;
     dst = (unsigned long *) &_sdata;
