@@ -1,6 +1,7 @@
 #include <timer.h>
 #include <clock.h>
 #include <gpio.h>
+#include <spi.h>
 #include <nested-vector.h>
 #include <sys-ctrl-blk.h>
 
@@ -32,6 +33,7 @@ void crt0_init(void){
 }
 
 int main(){
+    
     tim1_init();
     return 0;
 }
