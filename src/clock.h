@@ -111,3 +111,57 @@ struct rcc_t {
                                    // 30 = WWDGRSTF (window watchdog reset)
                                    // 31 = LPWRRSTF (low-power reset)
 };
+
+/* Clock Sources */
+enum clock_source {
+    CLOCK_HSI = 0,      /* Internal 8MHz RC oscillator */
+    CLOCK_HSE = 1,      /* External crystal oscillator */
+    CLOCK_PLL = 2       /* Phase Locked Loop */
+};
+
+/* PLL Multiplication Factors */
+enum pll_mult {
+    PLL_MUL_2   = 0,    /* PLL clock = source * 2 */
+    PLL_MUL_3   = 1,    /* PLL clock = source * 3 */
+    PLL_MUL_4   = 2,    /* PLL clock = source * 4 */
+    PLL_MUL_5   = 3,    /* PLL clock = source * 5 */
+    PLL_MUL_6   = 4,    /* PLL clock = source * 6 */
+    PLL_MUL_7   = 5,    /* PLL clock = source * 7 */
+    PLL_MUL_8   = 6,    /* PLL clock = source * 8 */
+    PLL_MUL_9   = 7,    /* PLL clock = source * 9 */
+    PLL_MUL_10  = 8,    /* PLL clock = source * 10 */
+    PLL_MUL_11  = 9,    /* PLL clock = source * 11 */
+    PLL_MUL_12  = 10,   /* PLL clock = source * 12 */
+    PLL_MUL_13  = 11,   /* PLL clock = source * 13 */
+    PLL_MUL_14  = 12,   /* PLL clock = source * 14 */
+    PLL_MUL_15  = 13,   /* PLL clock = source * 15 */
+    PLL_MUL_16  = 14    /* PLL clock = source * 16 */
+};
+
+/* AHB Prescaler Values */
+enum ahb_prescaler {
+    AHB_DIV_1   = 0,    /* SYSCLK not divided */
+    AHB_DIV_2   = 8,    /* SYSCLK divided by 2 */
+    AHB_DIV_4   = 9,    /* SYSCLK divided by 4 */
+    AHB_DIV_8   = 10,   /* SYSCLK divided by 8 */
+    AHB_DIV_16  = 11,   /* SYSCLK divided by 16 */
+    AHB_DIV_64  = 12,   /* SYSCLK divided by 64 */
+    AHB_DIV_128 = 13,   /* SYSCLK divided by 128 */
+    AHB_DIV_256 = 14,   /* SYSCLK divided by 256 */
+    AHB_DIV_512 = 15    /* SYSCLK divided by 512 */
+};
+
+/* APB Prescaler Values */
+enum apb_prescaler {
+    APB_DIV_1   = 0,    /* HCLK not divided */
+    APB_DIV_2   = 4,    /* HCLK divided by 2 */
+    APB_DIV_4   = 5,    /* HCLK divided by 4 */
+    APB_DIV_8   = 6,    /* HCLK divided by 8 */
+    APB_DIV_16  = 7     /* HCLK divided by 16 */
+};
+
+/* USB Prescaler Values */
+enum usb_prescaler {
+    USB_DIV_1_5 = 0,    /* PLL clock divided by 1.5 */
+    USB_DIV_1   = 1     /* PLL clock not divided */
+};
