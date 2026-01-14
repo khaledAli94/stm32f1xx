@@ -70,6 +70,9 @@ void rcc_pll_config(unsigned source, unsigned multiplier) {
     
     /* Set PLL multiplier - access RCC->CFGR (offset 0x04) */
     RCC->CFGR |= ((multiplier & 0xF) << 18);  /* Set PLLMUL[3:0] bits (bits 21:18) */
+
+    /* Note: PLL is still disabled after configuration */
+    /* Caller must call rcc_pll_enable() separately */
 }
 
 void rcc_sysclk_config(unsigned source) {
