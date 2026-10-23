@@ -1,7 +1,7 @@
 #include <timer.h>
 #include <clock.h>
 #include <gpio.h>
-#include <flash.h>
+#include <flash_reg.h>
 
  /* period = (reload+1)/clk */
 /* SysTick Registers */

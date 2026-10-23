@@ -1,6 +1,7 @@
 #include <clock.h>
 #include <gpio.h>
 #include <spi.h>
+#include <flash_reg.h>
 
 /* RCC Driver Functions */
 void rcc_hsi_enable(void) {
@@ -79,7 +80,6 @@ void rcc_sysclk_config(unsigned source) {
     /* Set system clock source - access RCC->CFGR (offset 0x04) */
     RCC->CFGR &= ~(0x3 << 0);  /* Clear SW[1:0] bits (bits 1:0) */
     RCC->CFGR |= ((source & 0x3) << 0);  /* Set SW[1:0] bits (bits 1:0) */
-    
     /* Wait for clock switch */
     while ((RCC->CFGR & (0x3 << 2)) != ((source & 0x3) << 2));  /* Wait for SWS[1:0] (bits 3:2) */
 }
@@ -227,7 +227,10 @@ void rcc_sysclk_hsi_64mhz(void) {
     
     /* Enable PLL - access RCC->CR (offset 0x00) */
     rcc_pll_enable();
-    
+
+    /* Set Flash latency for 64MHz BEFORE switching clock */
+    flash_set_latency(64000000);
+
     /* Configure AHB, APB1, APB2 prescalers - access RCC->CFGR (offset 0x04) */
     rcc_ahb_prescaler_config(AHB_DIV_1);    /* HCLK = 64MHz */
     rcc_apb1_prescaler_config(APB_DIV_2);   /* PCLK1 = 32MHz */
@@ -249,6 +252,9 @@ void rcc_sysclk_hse_72mhz(void) {
     /* Enable PLL - access RCC->CR (offset 0x00) */
     rcc_pll_enable();
     
+    /* Set Flash latency for 72MHz BEFORE switching clock */
+    flash_set_latency(72000000);
+
     /* Configure AHB, APB1, APB2 prescalers - access RCC->CFGR (offset 0x04) */
     rcc_ahb_prescaler_config(AHB_DIV_1);    /* HCLK = 72MHz */
     rcc_apb1_prescaler_config(APB_DIV_2);   /* PCLK1 = 36MHz */

@@ -18,7 +18,7 @@ MCFLAGS	= -mcpu=cortex-m3 -mthumb -mno-unaligned-access -fverbose-asm -fstack-us
 
 # build flags
 CFLAGS 	+= $(DEFINES) $(MCFLAGS) -g3 -ggdb -Wall -O0 -ffunction-sections -fdata-sections -ffreestanding -std=gnu99 -fomit-frame-pointer -fdump-rtl-expand 
-ASFLAGS	+= $(DEFINES) -x assembler-with-cpp $(MCFLAGS) -g3 -ggdb -Wall -O0 -ffunction-sections -fdata-sections -ffreestanding -std=gnu99 -fomit-frame-pointer -fdump-rtl-expand
+ASFLAGS	+= $(DEFINES) -x assembler-with-cpp $(MCFLAGS) -g3 -ggdb -Wall -O0 -ffunction-sections -fdata-sections -ffreestanding -std=gnu99 -fomit-frame-pointer #-fdump-rtl-expand
 
 # nano.specs automatically adds -lc_nano
 LDFLAGS	= -T ./memlayout.ld -Wl,-Map=./$(TARGET).map -Wl,--gc-sections -Wl,--cref -z noexecstack  -nostdlib -nostartfiles

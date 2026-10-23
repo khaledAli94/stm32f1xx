@@ -25,7 +25,7 @@ Reset_Handler:
  * @param  None
  * @retval : None
 */
-    .section .text.Default_Handler,"ax",%progbits
+  .section .text.Default_Handler,"ax",%progbits
 .global Default_Handler
 Default_Handler:
   b .
