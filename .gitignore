@@ -23,3 +23,6 @@
 # linux 
 *:Zone.Identifier
 *makefile
+
+# proj specific
+*.vscode

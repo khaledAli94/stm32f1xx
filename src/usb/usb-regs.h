@@ -1,6 +1,11 @@
 
+/*
+ * BDT assumed at PMA offset 0 (USB->BTABLE = 0).
+ * If BTABLE is relocated, USB_BDT must be adjusted.
+ */
+
 #define USB_BASE      0x40005C00UL
-#define USB_PMA_BASE  0x40006000UL   // Packet memory area (shared with CAN)
+#define USB_PMA_BASE  0x40006000UL   // Packet memory area (shared with CAN) (512 bytes)
 
 #define USB ((struct usb_regs_t *) USB_BASE)
 
@@ -14,15 +19,19 @@ struct usb_regs_t {
     volatile unsigned BTABLE;      // 0x50 Buffer table address register
 };
 
-struct usb_bd_t {
-    volatile unsigned short ADDR_TX;   // Transmission buffer address
-    volatile unsigned short COUNT_TX;  // Transmission byte count
-    volatile unsigned short ADDR_RX;   // Reception buffer address
-    volatile unsigned short COUNT_RX;  // Reception byte count
+/* Buffer Descriptor Table (BDT) 4 half-words */
+struct usb_bdt_entry_t {
+    volatile unsigned short ADDR_TX;   // 0x0 Transmission buffer address
+    unsigned short PAD0;
+    volatile unsigned short COUNT_TX;  // 0x4 Transmission byte count
+    unsigned short PAD1;
+    volatile unsigned short ADDR_RX;   // 0x8 Reception buffer address
+    unsigned short PAD2;
+    volatile unsigned short COUNT_RX;  // 0xc Reception byte count
+    unsigned short PAD3;
 };
 
-#define USB_BD ((struct usb_bd_t *) USB_PMA_BASE)
-#define USB_PMA ((volatile unsigned short *) USB_PMA_BASE)
+
 
 /* USB endpoint-register bits */
 #define USB_EP_EA           0x000fU
