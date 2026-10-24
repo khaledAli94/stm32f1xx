@@ -1,3 +1,6 @@
+#ifndef SPI_H
+#define SPI_H
+
 #define SPI1_BASE 0x40013000UL
 #define SPI2_BASE 0x40003800UL
 
@@ -109,3 +112,5 @@ int spi_rx_buffer_ready(volatile struct spi_t *spi);
 void spi_enable(volatile struct spi_t *spi);
 void spi_disable(volatile struct spi_t *spi);
 void spi_set_lsb_first(volatile struct spi_t *spi, int lsb_first);
+
+#endif /* SPI_H */

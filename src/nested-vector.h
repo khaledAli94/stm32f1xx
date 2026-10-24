@@ -1,3 +1,6 @@
+#ifndef NESTED_VECTOR_H
+#define NESTED_VECTOR_H
+
 #define NVIC_BASE 0xe000e100UL
 #define NVIC ((volatile struct nvic_t *) NVIC_BASE)
 
@@ -77,3 +80,5 @@ struct nvic_t {
 // func prototypes
 void NVIC_EnableIRQ(enum IRQn_t irq);
 void NVIC_DisableIRQ(enum IRQn_t irq);
+
+#endif /* NESTED_VECTOR_H */

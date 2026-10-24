@@ -1,3 +1,6 @@
+#ifndef EXTERNAL_INTR_H
+#define EXTERNAL_INTR_H
+
 #define EXTI_BASE 0x40010400UL
 #define EXTI ((volatile struct exti_t *) EXTI_BASE)
 
@@ -9,3 +12,5 @@ struct exti_t {
     volatile unsigned SWIER;   // 0x10
     volatile unsigned PR;      // 0x14
 };
+
+#endif /* EXTERNAL_INTR_H */

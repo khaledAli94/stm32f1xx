@@ -1,3 +1,6 @@
+#ifndef ADC_H
+#define ADC_H
+
 #define ADC1_BASE 0x40012400UL
 #define ADC2_BASE 0x40012800UL
 
@@ -27,3 +30,4 @@ struct adc_t {
     volatile unsigned DR;       // 0x4C Regular data register
 };
 
+#endif /* ADC_H */

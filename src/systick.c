@@ -1,9 +1,10 @@
 #include <timer.h>
 #include <clock.h>
 #include <gpio.h>
-#include <flash_reg.h>
+#include <flash-regs.h>
 
- /* period = (reload+1)/clk */
+/* period = (reload+1)/clk */
+
 /* SysTick Registers */
 void sys_tick_init(void){
     // Enable GPIOC clock (IOPCEN = bit 4) 	

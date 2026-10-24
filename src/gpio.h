@@ -1,3 +1,6 @@
+#ifndef GPIO_H
+#define GPIO_H
+
 #define GPIOA_BASE 0x40010800UL
 #define GPIOB_BASE 0x40010C00UL
 #define GPIOC_BASE 0x40011000UL
@@ -96,3 +99,5 @@ void gpio_set_pull(volatile struct gpio_t *gpio, enum gpio_pin pin, enum gpio_pu
 void gpio_config_output(volatile struct gpio_t *gpio, enum gpio_pin pin, int speed);
 void gpio_config_input(volatile struct gpio_t *gpio, enum gpio_pin pin, int with_pull);
 void gpio_config_alternate(volatile struct gpio_t *gpio, enum gpio_pin pin, int speed, int open_drain);
+
+#endif /* GPIO_H */

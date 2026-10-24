@@ -11,7 +11,7 @@
 .type Reset_Handler, %function
 Reset_Handler:
   bl crt0_init
-  bl sys_tick_init
+  @ bl sys_tick_init
   bl main
 
   b .

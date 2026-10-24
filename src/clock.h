@@ -1,3 +1,6 @@
+#ifndef CLOCK_H
+#define CLOCK_H
+
 #define SYSTICK_BASE 0xE000E010UL
 #define SYSTICK ((struct systick_t *) SYSTICK_BASE)
 
@@ -210,3 +213,5 @@ unsigned rcc_get_pclk1_frequency(void);
 void rcc_deinit(void);
 void init_spi1_with_clocks(void);
 void print_clock_frequencies(void);
+
+#endif /* CLOCK_H */

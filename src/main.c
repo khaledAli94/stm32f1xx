@@ -4,6 +4,7 @@
 #include <spi.h>
 #include <nested-vector.h>
 #include <sys-ctrl-blk.h>
+#include <usb-regs.h>
 
 extern volatile unsigned char  _sbss[], _ebss [], _etext[] ;
 extern volatile unsigned char   _sdata[] , _edata[];
@@ -33,13 +34,11 @@ void crt0_init(void){
 }
 
 int main(){
-    init_spi1_with_clocks();
-    
-    // Set SPI mode 0 (CPOL=0, CPHA=0)
-    spi_set_mode(SPI1, 0, 0);
-    
 
+    usb_clock_init();
+    usb_init();
 
-    tim1_init();
+    __asm__("cpsie i");  /* Enable global interrupts */
+
     return 0;
 }

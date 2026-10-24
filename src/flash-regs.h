@@ -1,10 +1,10 @@
-#ifndef FLASH_REG_H
-#define FLASH_REG_H
+#ifndef FLASH_REGS_H
+#define FLASH_REGS_H
 
 #define FLASH_REG_BASE 0x40022000UL
-#define FLASH ((volatile struct flash_reg_t *) FLASH_REG_BASE)
+#define FLASH ((volatile struct flash_regs_t *) FLASH_REG_BASE)
 
-struct flash_reg_t {
+struct flash_regs_t {
     volatile unsigned ACR;      // 0x00 - Access Control Register
     volatile unsigned KEYR;     // 0x04 - Key Register
     volatile unsigned OPTKEYR;  // 0x08 - Option Key Register
@@ -18,7 +18,7 @@ struct flash_reg_t {
 
 static inline void flash_set_latency(unsigned freq_hz) {
     unsigned acr = FLASH->ACR;
-    
+
     /* Clear LATENCY[2:0] bits (bits 2:0) and PRFTBE (bit 4) */
     acr &= ~0x1fU;
 
@@ -29,8 +29,8 @@ static inline void flash_set_latency(unsigned freq_hz) {
     } else {
         acr |= (1U << 4) | 0x2U;  /* 2 wait states + prefetch */
     }
-    
+
     FLASH->ACR = acr;
 }
 
-#endif /* FLASH_REG_H */
+#endif /* FLASH_REGS_H */

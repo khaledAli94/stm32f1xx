@@ -24,5 +24,6 @@
 *:Zone.Identifier
 *makefile
 
-# proj specific
+#unwanted
+*makefile
 *.vscode

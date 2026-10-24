@@ -1,3 +1,6 @@
+#ifndef TIMER_H
+#define TIMER_H
+
 #define TIM1_BASE 0x40012C00UL
 #define TIM2_BASE 0x40000000UL
 #define TIM3_BASE 0x40000400UL
@@ -56,3 +59,5 @@ struct timer_t {
 
 
 void tim1_init(void);
+
+#endif /* TIMER_H */

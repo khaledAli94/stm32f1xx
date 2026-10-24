@@ -1,3 +1,6 @@
+#ifndef DMA_H
+#define DMA_H
+
 #define DMA1_BASE 0x40020000UL
 #define DMA2_BASE 0x40020400UL
 
@@ -18,3 +21,4 @@ struct dma_t {
     struct dma_channel_t CH[7];
 };
 
+#endif /* DMA_H */

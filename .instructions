@@ -1,0 +1,18 @@
+We are working on the STM32F103 bare-metal USB project in WSL (\wsl.localhost\Ubuntu\home\khaled\workstation\stm32f103).
+My ST-Link is attached via USBIPD from Windows to WSL.
+We previously fixed all HardFault issues:
+1. Enabled GPIOA clock (RCC->APB2ENR |= (1U << 2)) in usb_init().
+2. Corrected stack pointer _estack to 0x20005000 in memlayout.ld.
+3. Added flash_set_latency(72000000) for 72MHz clock in usb_clock_init().
+4. Included usb-regs.h in main.c to remove implicit function declarations.
+Please help me verify or debug the current USB setup and OpenOCD debugging session.
+
+
+
+ What are the internal pulls on the STM32F103?
+   - D+ (PA12) Pull-Up: The STM32F103 USB peripheral has an internal 1.5kΩ pull-up resistor on D+ (PA12) controlled by the USB peripheral hardware
+     (tied to power-down / connect state). Additionally, many STM32F103 boards (like the Blue Pill) have an external physical pull-up resistor on
+     PA12 to 3.3V on the PCB.
+   - Data Lines (PA11 / PA12): The internal USB transceiver integrates standard receiver termination and weak internal biasing, but does not use
+     standard general-purpose GPIO pull-ups/pull-downs. When configured as Input Floating (0x04), the GPIO digital input buffer is disconnected or
+     bypassed by the analog USB transceiver, leaving the high-speed differential receiver directly connected to the pins.

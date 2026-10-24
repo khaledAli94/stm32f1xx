@@ -1,3 +1,6 @@
+#ifndef ALTER_FUNC_H
+#define ALTER_FUNC_H
+
 #define AFIO_BASE 0x40010000UL
 #define AFIO ((volatile struct afio_t *) AFIO_BASE)
 
@@ -10,3 +13,5 @@ struct afio_t {
     volatile unsigned EXTICR4;     // 0x14
     volatile unsigned MAPR2;       // 0x18
 };
+
+#endif /* ALTER_FUNC_H */

@@ -1,3 +1,6 @@
+#ifndef I2C_H
+#define I2C_H
+
 #define I2C1_BASE 0x40005400UL
 #define I2C2_BASE 0x40005800UL
 
@@ -15,3 +18,5 @@ struct i2c_t {
     volatile unsigned CCR;     // 0x1C
     volatile unsigned TRISE;   // 0x20
 };
+
+#endif /* I2C_H */

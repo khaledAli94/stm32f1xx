@@ -1,7 +1,7 @@
 #include <clock.h>
 #include <gpio.h>
 #include <spi.h>
-#include <flash_reg.h>
+#include <flash-regs.h>
 
 /* RCC Driver Functions */
 void rcc_hsi_enable(void) {

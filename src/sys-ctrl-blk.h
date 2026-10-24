@@ -1,3 +1,6 @@
+#ifndef SYS_CTRL_BLK_H
+#define SYS_CTRL_BLK_H
+
 #define SCB_BASE 0xe000ed00UL
 #define SCB ((volatile struct scb_t *) SCB_BASE)
 
@@ -20,3 +23,4 @@ struct scb_t {
     volatile unsigned BFAR;       // 0x38
 };
 
+#endif /* SYS_CTRL_BLK_H */

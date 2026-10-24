@@ -1,3 +1,6 @@
+#ifndef UART_H
+#define UART_H
+
 #define USART1_BASE 0x40013800UL
 #define USART2_BASE 0x40004400UL
 #define USART3_BASE 0x40004800UL
@@ -16,3 +19,4 @@ struct usart_t {
     volatile unsigned GTPR;   // 0x18
 };
 
+#endif /* UART_H */
