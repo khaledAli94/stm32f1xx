@@ -37,8 +37,13 @@ int main(){
 
     usb_clock_init();
     usb_init();
+    
 
-    __asm__("cpsie i");  /* Enable global interrupts */
+    while (1)
+    {
+        __asm__("cpsie i");  /* Enable global interrupts */
+    }
+    
 
     return 0;
 }

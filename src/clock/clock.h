@@ -212,6 +212,7 @@ unsigned rcc_get_hclk_frequency(void);
 unsigned rcc_get_pclk1_frequency(void);
 void rcc_deinit(void);
 void init_spi1_with_clocks(void);
+
 void print_clock_frequencies(void);
 
 #endif /* CLOCK_H */

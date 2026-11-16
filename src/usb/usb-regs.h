@@ -42,12 +42,14 @@ struct usb_bdt_entry_t {
 /* 16-bit PMA access: byte offset b -> CPU addr USB_PMA_BASE + b */
 #define PMA_BYTE(b)   (*(volatile unsigned short *)(USB_PMA_BASE + (b)))
 
-/* PMA byte offsets of data buffers */
-#define PMA_EP0_TX    64U
+/* PMA byte offsets of data buffers (must start >= 128 to avoid BDT overlap at 0-127) */
+#define PMA_EP0_TX    64U 
 #define PMA_EP0_RX    128U
 #define PMA_EP1_TX    192U
 #define PMA_EP1_RX    256U
 #define PMA_EP2_TX    320U
+
+  
 
 /* EPnR bits */
 #define EP_EA        0x000FU

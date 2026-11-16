@@ -6,8 +6,7 @@
 
 /* ---------- state (plain globals, no struct if you prefer) ---------- */
 static unsigned char  usb_addr;
-static unsigned       ctrl_pending;      /* 0 idle, 1 OUT-data, 2 set-addr,
-                                            3 IN-chunks, 5 IN-ZLP, 6 OUT-ZLP */
+static unsigned       ctrl_pending;      /* 0 idle, 1 OUT-data, 2 set-addr, 3 IN-chunks, 5 IN-ZLP, 6 OUT-ZLP */
 static unsigned char  ctrl_buf[128];
 static unsigned       ctrl_len;
 static unsigned       ctrl_pos;

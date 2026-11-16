@@ -5,7 +5,9 @@ We previously fixed all HardFault issues:
 2. Corrected stack pointer _estack to 0x20005000 in memlayout.ld.
 3. Added flash_set_latency(72000000) for 72MHz clock in usb_clock_init().
 4. Included usb-regs.h in main.c to remove implicit function declarations.
+5 Shell & "C:\Program Files\USBPcap\USBPcapCMD.exe" -h   
 Please help me verify or debug the current USB setup and OpenOCD debugging session.
+
 
 
 
