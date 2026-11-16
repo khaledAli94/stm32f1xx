@@ -4,6 +4,10 @@
 /*
  * BDT assumed at PMA offset 0 (USB->BTABLE = 0).
  * If BTABLE is relocated, USB_BDT must be adjusted.
+ *  the USB PMA is 512 bytes, organised as 256 half-words, 
+ * but the CPU does not see it as a contiguous byte array. 
+ * Each 16-bit PMA half-word is mapped to a 32-bit slot on the CPU bus 
+ * The BDT (8 entries x 8 bytes) occupies PMA bytes 0..63
  */
 
 #define USB_BASE      0x40005C00UL
@@ -39,8 +43,8 @@ struct usb_bdt_entry_t {
  * Data buffers start at PMA byte 64 (CPU offset 128). */
 #define USB_BD_AT(n)  ((struct usb_bdt_entry_t *)(USB_PMA_BASE + 16U * (n)))
 
-/* 16-bit PMA access: byte offset b -> CPU addr USB_PMA_BASE + b */
-#define PMA_BYTE(b)   (*(volatile unsigned short *)(USB_PMA_BASE + (b)))
+/* 16-bit PMA access: byte offset b -> CPU addr USB_PMA_BASE + 2b */
+#define PMA_BYTE(b)   (*(volatile unsigned short *)(USB_PMA_BASE + 2U * (unsigned)(b)))
 
 /* PMA byte offsets of data buffers (must start >= 128 to avoid BDT overlap at 0-127) */
 #define PMA_EP0_TX    64U 

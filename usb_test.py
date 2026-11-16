@@ -2,6 +2,8 @@
 
 import usb1
 
+# VID = 0xdead
+# PID = 0xdeef
 VID = 0x0483
 PID = 0x5740
 

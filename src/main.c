@@ -6,7 +6,7 @@
 #include <sys-ctrl-blk.h>
 #include <usb-regs.h>
 
-extern volatile unsigned char  _sbss[], _ebss [], _etext[] ;
+extern volatile unsigned char  _sbss[], _ebss [], _sidata[] ;
 extern volatile unsigned char   _sdata[] , _edata[];
 extern volatile unsigned long  _estack[];
 extern void (* const g_pfnVectors[])(void);
@@ -18,7 +18,7 @@ void crt0_init(void){
     SCB->VTOR = (unsigned)g_pfnVectors;
 
     // Copy initialized data from Flash to RAM (optimize for large chunks)
-    src = (unsigned long *) &_etext;
+    src = (unsigned long *)&_sidata;
     dst = (unsigned long *) &_sdata;
     while (dst + 1 <= (unsigned long *) &_edata) {  *dst++ = *src++;  }
     // Handle remaining bytes (if the section size isn't a multiple of word size)
@@ -35,10 +35,11 @@ void crt0_init(void){
 
 int main(){
 
+    __asm__("cpsid i");  /* Disable global interrupts */
     usb_clock_init();
+    __asm__("cpsie i");  /* Enable global interrupts */
     usb_init();
 
-    __asm__("cpsie i");  /* Enable global interrupts */
     
     while (1)
     {
