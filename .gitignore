@@ -26,4 +26,6 @@
 
 #unwanted
 *makefile
-*.vscode
+/.vscode
+.instructions
+
