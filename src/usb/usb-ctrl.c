@@ -96,8 +96,8 @@ static void ep_set_tx(unsigned ep, unsigned s) {
     ep_set(ep, 0x0030U, s << 4);
 }
 static void ep_set_rx(unsigned ep, unsigned s) {
-    if (ep == 0) USB_BD_AT(0)->COUNT_RX = 0x8800;
-    else if (ep == 1) USB_BD_AT(1)->COUNT_RX = 0x8800;
+    if (ep == 0) USB_BD_AT(0)->COUNT_RX = 0x8400;
+    else if (ep == 1) USB_BD_AT(1)->COUNT_RX = 0x8400;
     ep_set(ep, 0x3000U, s << 12);
 }
 static void ep_clear_ctr_rx(unsigned ep) {
@@ -111,24 +111,24 @@ static void ep_clear_ctr_tx(unsigned ep) {
 void usb_init(void) {
     unsigned d;
 
-    RCC->APB2ENR |= (1U << 2);                   /* GPIOAEN */
-    RCC->APB1ENR |= (1U << 23);                  /* USBEN  */
+    RCC->APB2ENR |= (1U << 2);                   /* GPIOA-EN */
+    RCC->APB1ENR |= (1U << 23);                  /* USB-EN  */
 
     /* PA11 / PA12 as input floating */
     GPIOA->CRH = (GPIOA->CRH & ~0x000FF000U) | 0x00044000U;
 
-    for (d = 0x10000; d; --d) { }                /* settle */
+    for (d = 0x40000; d; --d) { }                /* settle */
 
     USB->CNTR = CNTR_FRES;
-    for (d = 0x10000; d; --d) { }
+    for (d = 0x40000; d; --d) { }
     USB->CNTR = 0;
     USB->ISTR = 0;
     USB->BTABLE = 0;                             /* BTABLE at PMA byte 0 */
 
     /* EP0: control, RX valid, TX NAK */
     ep_set(0, 0xFFFFU, EP_TYPE_CONTROL | (EP_NAK << 4) | (EP_VALID << 12));
+    USB_BD_AT(0)->ADDR_RX  = PMA_EP0_RX;  USB_BD_AT(0)->COUNT_RX = 0x8400;
     USB_BD_AT(0)->ADDR_TX  = PMA_EP0_TX;  USB_BD_AT(0)->COUNT_TX = 0;
-    USB_BD_AT(0)->ADDR_RX  = PMA_EP0_RX;  USB_BD_AT(0)->COUNT_RX = 0x8800;
 
     USB->CNTR  = CNTR_CTRM | CNTR_RESETM | CNTR_SUSPM | CNTR_WKUPM;
     NVIC->ISER[0] = (1U << 20);   /* NVIC USB_LP */
@@ -163,9 +163,7 @@ static void ep0_setup(void) {
             const unsigned char *src = 0; unsigned n = 0;
             if      (type == 0x01U) { src = devd; n = sizeof(devd); }
             else if (type == 0x02U) { src = cfgd; n = sizeof(cfgd); }
-            else if (type == 0x03U && (wVal & 0xFFU) == 0) {
-                src = str0; n = sizeof(str0);
-            }
+            else if (type == 0x03U && (wVal & 0xFFU) == 0) { src = str0; n = sizeof(str0);}
             if (!src) { ep_set_tx(0, EP_STALL); ep_set_rx(0, EP_STALL); return; }
             if (n > sizeof(ctrl_buf)) n = sizeof(ctrl_buf);
             if (n > wLen) n = wLen;
@@ -180,7 +178,7 @@ static void ep0_setup(void) {
         } else if (bReq == 0x09U) {                     /* SET_CONFIGURATION */
             if (wVal) {
                 USB_BD_AT(1)->ADDR_TX = PMA_EP1_TX;  USB_BD_AT(1)->COUNT_TX = 0;
-                USB_BD_AT(1)->ADDR_RX = PMA_EP1_RX;  USB_BD_AT(1)->COUNT_RX = 0x8800;
+                USB_BD_AT(1)->ADDR_RX = PMA_EP1_RX;  USB_BD_AT(1)->COUNT_RX = 0x8400;
                 ep_set(1, 0xFFFFU, 0x0001U | EP_TYPE_BULK
                                  | (EP_NAK << 4) | (EP_VALID << 12));
 
@@ -301,11 +299,11 @@ void USB_LP_CAN1_RX0_IRQHandler(void) {
         USB->ISTR = ~ISTR_RESET;
         usb_addr = 0; ctrl_pending = 0;
         bulk_tx_busy = 0;
-        USB->DADDR = 0;
+        USB->DADDR = (0x1U << 7);  /* Bit 7 = EF (Enable Function), Address = 0 */
         USB->CNTR  = 0;
         ep_set(0, 0xFFFFU, EP_TYPE_CONTROL | (EP_NAK << 4) | (EP_VALID << 12));
+        USB_BD_AT(0)->COUNT_RX = 0x8400;
         USB_BD_AT(0)->COUNT_TX = 0;
-        USB_BD_AT(0)->COUNT_RX = 0x8800;
         USB->CNTR = CNTR_CTRM | CNTR_RESETM | CNTR_SUSPM | CNTR_WKUPM;
         return;
     }

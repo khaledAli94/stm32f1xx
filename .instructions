@@ -18,3 +18,24 @@ Please help me verify or debug the current USB setup and OpenOCD debugging sessi
    - Data Lines (PA11 / PA12): The internal USB transceiver integrates standard receiver termination and weak internal biasing, but does not use
      standard general-purpose GPIO pull-ups/pull-downs. When configured as Input Floating (0x04), the GPIO digital input buffer is disconnected or
      bypassed by the analog USB transceiver, leaving the high-speed differential receiver directly connected to the pins.
+
+
+
+
+index  bytes                                    descriptor
+[0..8]   9, 0x02, 0x43, 0x00, ...                Config (9 B)
+[9..17]  9, 0x04, 0x00, 0x00, 0x01, 0x02, ...   IF0 comm (9 B)
+[18..22] 5, 0x24, 0x00, 0x10, 0x01               CDC Header
+[23..27] 5, 0x24, 0x01, 0x00, 0x01               CDC Call Mgmt
+[28..31] 4, 0x24, 0x02, 0x02                     CDC ACM 
+[32..36] 5, 0x24, 0x06, 0x00, 0x01               CDC Union
+[37..43] 7, 0x05, 0x82, 0x03, 0x08, 0x00, 0x0A   INT IN EP 0x82
+[44..52] 9, 0x04, 0x01, 0x00, 0x02, 0x0A, ...    IF1 data (9 B)
+[53..59] 7, 0x05, 0x81, 0x02, 0x40, 0x00, 0x00   Bulk IN 0x81
+[60..66] 7, 0x05, 0x01, 0x02, 0x40, 0x00, 0x00   Bulk OUT 0x01
+
+1. `COUNT_RX` before reception encodes **buffer capacity**, not a byte count — hardware overwrites it with the real count after RX.
+2. Layout: bit15=`BL_SIZE` (0=2-byte blocks, 1=32-byte blocks), bits14:10=`NUM_BLOCK` (5-bit count), bits9:0=actual count (RX-only).
+3. Formula: size = `NUM_BLOCK × 2` (BL_SIZE=0) or `NUM_BLOCK × 32` (BL_SIZE=1); only 5 bits for NUM_BLOCK forces this dual-granularity scheme.
+4. For 64 bytes: `BL_SIZE=1, NUM_BLOCK=2` → `0x8800`. Your `0x8400` = `BL_SIZE=1, NUM_BLOCK=1` → only 32 bytes, too small for `wMaxPacketSize0=64`.
+5. Use a macro like `RX_COUNT(size)` to compute this correctly everywhere instead of hardcoding magic hex values.
