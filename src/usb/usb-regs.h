@@ -44,7 +44,7 @@ struct usb_bdt_entry_t {
 #define USB_BD_AT(n)  ((struct usb_bdt_entry_t *)(USB_PMA_BASE + 16U * (n)))
 
 /* 16-bit PMA access: byte offset b -> CPU addr USB_PMA_BASE + 2b */
-#define PMA_BYTE(b)   (*(volatile unsigned short *)(USB_PMA_BASE + 2U * (unsigned)(b)))
+#define PMA_BYTE(b)   (*(volatile unsigned short *)(USB_PMA_BASE + 2U * (b)))
 
 /* PMA byte offsets of data buffers (must start >= 128 to avoid BDT overlap at 0-127) */
 #define PMA_EP0_TX    64U 
@@ -56,43 +56,52 @@ struct usb_bdt_entry_t {
   
 
 /* EPnR bits */
-#define EP_EA        0x000FU
-#define EP_STAT_TX   0x0030U
-#define EP_DTOG_TX   0x0040U
-#define EP_CTR_TX    0x0080U
-#define EP_KIND      0x0100U
-#define EP_TYPE      0x0600U
-#define EP_SETUP     0x0800U
-#define EP_STAT_RX   0x3000U
-#define EP_DTOG_RX   0x4000U
-#define EP_CTR_RX    0x8000U
+#define EP_EA           (0xfU << 0) 
+#define EP_STAT_TX      (0x3U << 4) 
+#define EP_DTOG_TX      (0x1U << 6) 
+#define EP_CTR_TX       (0x1U << 7) 
+#define EP_KIND         (0x1U << 8) 
+#define EP_TYPE         (0x3U << 9) 
+#define EP_SETUP        (0x1U << 11)
+#define EP_STAT_RX      (0x3U << 12)
+#define EP_DTOG_RX      (0x1U << 14)
+#define EP_CTR_RX       (0x1U << 15)
 
-#define EP_TYPE_BULK    0x0000U
-#define EP_TYPE_CONTROL 0x0200U
-#define EP_TYPE_INT     0x0600U
+/* EP_TYPE bits */
+#define EP_TYPE_BULK    (0x0U << 9)
+#define EP_TYPE_CONTROL (0x1U << 9)
+#define EP_TYPE_ISO     (0x2U << 9)
+#define EP_TYPE_INT     (0x3U << 9)
 
-#define EP_DISABLED  0U
-#define EP_STALL     1U
-#define EP_NAK       2U
-#define EP_VALID     3U
+/* EP_STAT_TX / EP_STAT_RX state */
+#define EP_DISABLED     0x0U
+#define EP_STALL        0x1U
+#define EP_NAK          0x2U
+#define EP_VALID        0x3U
 
-/* ISTR / CNTR bits */
-#define ISTR_CTR     0x8000U
-#define ISTR_RESET   0x0400U
-#define ISTR_SUSP    0x0800U
-#define ISTR_WKUP    0x1000U
-#define ISTR_EP_ID   0x000FU
-#define CNTR_FRES    0x0001U
-#define CNTR_PDWN    0x0002U
-#define CNTR_LPMODE  0x0004U
-#define CNTR_FSUSP   0x0008U
-#define CNTR_RESUME  0x0010U
-#define CNTR_CTRM    0x8000U
-#define CNTR_RESETM  0x0400U
-#define CNTR_SUSPM   0x0800U
-#define CNTR_WKUPM   0x1000U
-#define CNTR_ERRM    0x2000U
-#define CNTR_PMAOVRM 0x4000U
+/* ISTR bits */
+#define ISTR_EP_ID      (0xfU << 0)
+#define ISTR_ESOF       (0x1U << 8)
+#define ISTR_SOF        (0x1U << 9)
+#define ISTR_RESET      (0x1U << 10)
+#define ISTR_SUSP       (0x1U << 11)
+#define ISTR_WKUP       (0x1U << 12)
+#define ISTR_CTR        (0x1U << 15) /* Correct transfer */
+
+/* CNTR bits */
+#define CNTR_FRES       (0x1U << 0) 
+#define CNTR_PDWN       (0x1U << 1) 
+#define CNTR_LPMODE     (0x1U << 2) 
+#define CNTR_FSUSP      (0x1U << 3) 
+#define CNTR_RESUME     (0x1U << 4) 
+#define CNTR_RESETM     (0x1U << 10)
+#define CNTR_SUSPM      (0x1U << 11)
+#define CNTR_WKUPM      (0x1U << 12)
+#define CNTR_ERRM       (0x1U << 13)
+#define CNTR_PMAOVRM    (0x1U << 14)
+#define CNTR_CTRM       (0x1U << 15)
+
+#define DADDR_EF        (0x1U << 7)
 
 void usb_clock_init(void);
 void usb_init(void);

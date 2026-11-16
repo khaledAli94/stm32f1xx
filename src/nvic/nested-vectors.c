@@ -5,19 +5,15 @@
 
 
 void NMI_Handler(void){}
-void HardFault_Handler(void){
-  for(;;);
-}
+void HardFault_Handler(void){ for(;;); }
 void MemManage_Handler(void){}
 void BusFault_Handler(void){}
 void UsageFault_Handler(void){}
-
 void SVC_Handler(void){}
 void DebugMon_Handler(void){}
-
 void PendSV_Handler(void){}
 void SysTick_Handler(void){
-  GPIOC->ODR ^= (1U << 13);
+  // GPIOC->ODR ^= (1U << 13); // led toggle debug
 }
 void WWDG_IRQHandler(void){}
 void PVD_IRQHandler(void){}
@@ -38,12 +34,14 @@ void DMA1_Channel5_IRQHandler(void){}
 void DMA1_Channel6_IRQHandler(void){}
 void DMA1_Channel7_IRQHandler(void){}
 void ADC1_2_IRQHandler(void){}
+__attribute__((weak))
 void USB_HP_CAN1_TX_IRQHandler(void){}
 __attribute__((weak))
 void USB_LP_CAN1_RX0_IRQHandler(void){}
 void CAN1_RX1_IRQHandler(void){}
 void CAN1_SCE_IRQHandler(void){}
 void EXTI9_5_IRQHandler(void){}
+
 void TIM1_BRK_IRQHandler(void){}
 __attribute__((interrupt("IRQ")))
 void TIM1_UP_IRQHandler(void){
@@ -65,9 +63,11 @@ void USART2_IRQHandler(void){}
 void USART3_IRQHandler(void){}
 void EXTI15_10_IRQHandler(void){}
 void RTC_Alarm_IRQHandler(void){}
+__attribute__((weak))
 void USBWakeUp_IRQHandler(void){}
 
 
+/* IRQ API */
 void NVIC_EnableIRQ(enum IRQn_t irq) {
     NVIC->ISER[irq >> 5] = (1U << (irq & 0x1F));
 }
