@@ -4,11 +4,27 @@
 #include <nested-vector.h>
 #include <flash-regs.h>
 
-static unsigned char  usb_addr;
-static unsigned       ctrl_pending;      /* 0 idle, 1 OUT-data, 2 set-addr, 3 IN-chunks, 5 IN-ZLP, 6 OUT-ZLP */
-static unsigned char  ctrl_buf[128];
-static unsigned       ctrl_len;
-static unsigned       ctrl_pos;
+/*
+* per modemax bulk packet sz
+* Low-Speed  1.5 Mbit/s 8 bytes
+* Full-Speed 12 Mbit/s 64 bytes
+* High-Speed 480 Mbit/s 512 bytes
+*/
+
+enum ctrl_state_t {
+    CTRL_IDLE        = 0,
+    CTRL_DATA_OUT    = 1,
+    CTRL_SET_ADDRESS = 2,
+    CTRL_DATA_IN     = 3,
+    CTRL_STATUS_IN   = 5,
+    CTRL_STATUS_OUT  = 6
+};
+
+static unsigned char    usb_addr;
+static enum ctrl_state_t  ctrl_pending;
+static unsigned char    ctrl_buf[128];
+static unsigned         ctrl_len;
+static unsigned         ctrl_pos;
 
 static unsigned char  bulk_tx_busy;
 static unsigned char  bulk_tx_buf[64];
@@ -230,7 +246,7 @@ static void ep0_send_chunk(void) {
     pma_write16(PMA_EP0_TX, ctrl_buf + ctrl_pos, n);
     USB_BD_AT(0)->COUNT_TX = (unsigned short)n;
     ctrl_pos += n;
-    ctrl_pending = 3;
+    ctrl_pending = CTRL_DATA_IN;
     ep_set_tx(0, EP_VALID);
 }
 
@@ -244,7 +260,7 @@ static void ep0_setup(void) {
     wVal  = s[2] | ((unsigned)s[3] << 8);
     wLen  = s[6] | ((unsigned)s[7] << 8);
 
-    ctrl_len = 0; ctrl_pos = 0; ctrl_pending = 0;
+    ctrl_len = 0; ctrl_pos = 0; ctrl_pending = CTRL_IDLE;
 
     if ((bmReq & 0x60U) == 0x00U) {                    /* standard */
         if (bReq == 0x06U) {                            /* GET_DESCRIPTOR */
@@ -262,7 +278,7 @@ static void ep0_setup(void) {
         } else if (bReq == 0x05U) {                     /* SET_ADDRESS */
             usb_addr = (unsigned char)(wVal & 0x7FU);
             USB_BD_AT(0)->COUNT_TX = 0;
-            ctrl_pending = 2;
+            ctrl_pending = CTRL_SET_ADDRESS;
             ep_set_tx(0, EP_VALID);
         } else if (bReq == 0x09U) {                     /* SET_CONFIGURATION */
             if (wVal) {
@@ -276,7 +292,7 @@ static void ep0_setup(void) {
                                  | (EP_NAK << 4) | (EP_DISABLED << 12));
             }
             USB_BD_AT(0)->COUNT_TX = 0;
-            ctrl_pending = 5;
+            ctrl_pending = CTRL_STATUS_IN;
             ep_set_tx(0, EP_VALID);
         } else if (bReq == 0x00U) {                     /* GET_STATUS */
             ctrl_buf[0] = 0; ctrl_buf[1] = 0;
@@ -284,11 +300,11 @@ static void ep0_setup(void) {
             ep0_send_chunk();
         } else if (bReq == 0x01U || bReq == 0x03U) {    /* CLEAR_FEATURE / SET_FEATURE */
             USB_BD_AT(0)->COUNT_TX = 0;
-            ctrl_pending = 5;
+            ctrl_pending = CTRL_STATUS_IN;
             ep_set_tx(0, EP_VALID);
         } else if (bReq == 0x0BU) {                     /* SET_INTERFACE */
             USB_BD_AT(0)->COUNT_TX = 0;
-            ctrl_pending = 5;
+            ctrl_pending = CTRL_STATUS_IN;
             ep_set_tx(0, EP_VALID);
         } else if (bReq == 0x0AU) {                     /* GET_INTERFACE */
             ctrl_buf[0] = 0;
@@ -301,14 +317,14 @@ static void ep0_setup(void) {
         if (bReq == 0x20U) {                            /* SET_LINE_CODING */
             ctrl_len = (wLen < 7) ? wLen : 7;
             ctrl_pos = 0;
-            ctrl_pending = 1;
+            ctrl_pending = CTRL_DATA_OUT;
             ep_set_rx(0, EP_VALID);
         } else if (bReq == 0x21U) {                     /* GET_LINE_CODING */
             unsigned i; for (i = 0; i < 7; i++) ctrl_buf[i] = lc[i];
             ctrl_len = 7; ep0_send_chunk();
         } else if (bReq == 0x22U) {                     /* SET_CONTROL_LINE_STATE */
             USB_BD_AT(0)->COUNT_TX = 0;
-            ctrl_pending = 5;
+            ctrl_pending = CTRL_STATUS_IN;
             ep_set_tx(0, EP_VALID);
         } else {
             ep_set_tx(0, EP_STALL); ep_set_rx(0, EP_STALL);
@@ -320,16 +336,16 @@ static void ep0_setup(void) {
 
 static void ep0_in(void) {
     ep_clear_ctr_tx(0);
-    if (ctrl_pending == 2) {
+    if (ctrl_pending == CTRL_SET_ADDRESS) {
         USB->DADDR = usb_addr | 0x80U;
-        ctrl_pending = 0;
+        ctrl_pending = CTRL_IDLE;
         ep_set_rx(0, EP_VALID);
-    } else if (ctrl_pending == 3) {
+    } else if (ctrl_pending == CTRL_DATA_IN) {
         if (ctrl_pos < ctrl_len) { ep0_send_chunk(); return; }
-        ctrl_pending = 6;
+        ctrl_pending = CTRL_STATUS_OUT;
         ep_set_rx(0, EP_VALID);
-    } else if (ctrl_pending == 5) {
-        ctrl_pending = 0;
+    } else if (ctrl_pending == CTRL_STATUS_IN) {
+        ctrl_pending = CTRL_IDLE;
         ep_set_rx(0, EP_VALID);
     }
 }
@@ -337,19 +353,19 @@ static void ep0_in(void) {
 static void ep0_out(void) {
     unsigned cnt = USB_BD_AT(0)->COUNT_RX & 0x3FFU;
     ep_clear_ctr_rx(0);
-    if (ctrl_pending == 1) {
+    if (ctrl_pending == CTRL_DATA_OUT) {
         pma_read16(PMA_EP0_RX, ctrl_buf + ctrl_pos, cnt);
         ctrl_pos += cnt;
         if (ctrl_pos >= ctrl_len) {
             unsigned i; for (i = 0; i < 7; i++) lc[i] = ctrl_buf[i];
             USB_BD_AT(0)->COUNT_TX = 0;
-            ctrl_pending = 5;
+            ctrl_pending = CTRL_STATUS_IN;
             ep_set_tx(0, EP_VALID);
         } else {
             ep_set_rx(0, EP_VALID);
         }
-    } else if (ctrl_pending == 6) {
-        ctrl_pending = 0;
+    } else if (ctrl_pending == CTRL_STATUS_OUT) {
+        ctrl_pending = CTRL_IDLE;
         ep_set_rx(0, EP_VALID);
     } else {
         ep_set_rx(0, EP_VALID);
@@ -394,7 +410,7 @@ void USB_LP_CAN1_RX0_IRQHandler(void) {
 
     if (istr & ISTR_RESET) {
         USB->ISTR = ~ISTR_RESET;
-        usb_addr = 0; ctrl_pending = 0; bulk_tx_busy = 0;
+        usb_addr = 0; ctrl_pending = CTRL_IDLE; bulk_tx_busy = 0;
         USB->DADDR = DADDR_EF;  /* EF, ADD[0-6] = 0 */
         USB->CNTR  = 0;
         ep_set(0, 0xFFFFU, EP_TYPE_CONTROL | (EP_NAK << 4) | (EP_VALID << 12));

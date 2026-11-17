@@ -10,7 +10,6 @@
 
 struct spi_t {
     volatile unsigned CR1;     // 0x00 - Control Register 1
-                               // Main SPI configuration register.
                                // Bits:
                                // 0  = CPHA (Clock Phase)
                                // 1  = CPOL (Clock Polarity)
@@ -28,7 +27,6 @@ struct spi_t {
                                // 15 = BIDIMODE (Bidirectional Data Mode Enable: 0=2-line, 1=1-line)
 
     volatile unsigned CR2;     // 0x04 - Control Register 2
-                               // DMA and interrupt control register.
                                // Bits:
                                // 0  = RXDMAEN (Rx Buffer DMA Enable)
                                // 1  = TXDMAEN (Tx Buffer DMA Enable)
@@ -39,7 +37,6 @@ struct spi_t {
                                // 7  = TXEIE (Tx Buffer Empty Interrupt Enable)
 
     volatile unsigned SR;      // 0x08 - Status Register
-                               // SPI status flags.
                                // Bits:
                                // 0  = RXNE (Receive Buffer Not Empty: 0=Empty, 1=Data ready)
                                // 1  = TXE (Transmit Buffer Empty: 0=Not empty, 1=Empty)
@@ -52,39 +49,24 @@ struct spi_t {
                                // 8  = FRE (Frame Format Error: 0=No error, 1=Error)
 
     volatile unsigned DR;      // 0x0C - Data Register
-                               // Data transmission and reception register.
                                // Bits:
                                // 0:15 = DR[15:0] (Data bits - actual width depends on DFF bit)
                                // Note: 8-bit mode uses bits [7:0], 16-bit mode uses [15:0]
 
     volatile unsigned CRCPR;   // 0x10 - CRC Polynomial Register
-                               // Defines the polynomial for CRC calculation.
                                // Bits:
                                // 0:15 = CRCPOLY[15:0] (CRC Polynomial value)
                                // Default: 0x0007 (CRC-16 polynomial: x¹⁶ + x¹⁵ + x² + 1)
 
     volatile unsigned RXCRCR;  // 0x14 - RX CRC Register
-                               // Contains the CRC value for received data.
                                // Bits:
                                // 0:15 = RXCRC[15:0] (Received CRC value)
                                // Note: Contains CRC of last received block when CRCEN=1
 
     volatile unsigned TXCRCR;  // 0x18 - TX CRC Register
-                               // Contains the CRC value for transmitted data.
                                // Bits:
                                // 0:15 = TXCRC[15:0] (Transmitted CRC value)
                                // Note: Contains CRC of last transmitted block when CRCEN=1
-};
-
-
-struct spi1_t {
-    volatile unsigned CR1;     // 0x00
-    volatile unsigned CR2;     // 0x04
-    volatile unsigned SR;      // 0x08
-    volatile unsigned DR;      // 0x0C
-    volatile unsigned CRCPR;   // 0x10
-    volatile unsigned RXCRCR;  // 0x14
-    volatile unsigned TXCRCR;  // 0x18
 };
 
 /* Baud rate prescaler constants */
