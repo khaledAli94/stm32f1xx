@@ -207,8 +207,8 @@ int main(void) {
     spi_transmit_bytes(SPI1, tx_data, 3);
     
     // Receive array of bytes
-    unsigned char rx_data[3];
-    spi_receive_bytes(SPI1, rx_data, 3);
+    unsigned char tx_data[] = {0xe2, 0xa2, 0xa0, 0xc0, 0x2f, 0x26, 0x81, 0x1f, 0xa6, 0x40, 0xaf};
+    spi_transmit_bytes(SPI1, tx_data, 11);
     
     return 0;
 }

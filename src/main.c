@@ -35,7 +35,15 @@ void crt0_init(void){
 
 int main(){
 
-    __asm__("cpsid i");  /* Disable global interrupts */
+    /* Enable GPIOC clock */
+    RCC->APB2ENR |= (1U << 4);  /* IOPCEN */
+
+    /* Configure PC13 as Output Push-Pull 2MHz */
+    GPIOC->CRH = (GPIOC->CRH & ~0x00F00000U) | 0x00200000U;
+
+    /* Default LED state: OFF (active low -> set high) */
+    GPIOC->BSRR = (1U << 13);
+
     usb_clock_init();
     __asm__("cpsie i");  /* Enable global interrupts */
     usb_init();
@@ -43,7 +51,7 @@ int main(){
     
     while (1)
     {
-        __asm__("wfi");  /* awake on intterupt */
+        __asm__("wfi");  /* wakeup on intterupt */
     }
     
 
