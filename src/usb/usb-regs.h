@@ -1,15 +1,6 @@
 #ifndef USB_REGS_H
 #define USB_REGS_H
 
-/*
- * BDT assumed at PMA offset 0 (USB->BTABLE = 0).
- * If BTABLE is relocated, USB_BDT must be adjusted.
- *  the USB PMA is 512 bytes, organised as 256 half-words, 
- * but the CPU does not see it as a contiguous byte array. 
- * Each 16-bit PMA half-word is mapped to a 32-bit slot on the CPU bus 
- * The BDT (8 entries x 8 bytes) occupies PMA bytes 0..63
- */
-
 #define USB_BASE      0x40005C00UL
 #define USB_PMA_BASE  0x40006000UL   // Packet memory area (shared with CAN) (512 bytes)
 
@@ -25,6 +16,16 @@ struct usb_regs_t {
     volatile unsigned BTABLE;      // 0x50 Buffer table address register
 };
 
+/*
+ * Single-buffer:
+ *   ADDR_TX/COUNT_TX = TX buffer
+ *   ADDR_RX/COUNT_RX = RX buffer
+ *
+ * Double-buffer:
+ *   ADDR_TX/COUNT_TX = Buffer 0
+ *   ADDR_RX/COUNT_RX = Buffer 1
+ */
+
 /* Buffer Descriptor Table (BDT) 4 half-words */
 struct usb_bdt_entry_t {
     volatile unsigned short ADDR_TX;   // 0x0 Transmission buffer address
@@ -36,7 +37,14 @@ struct usb_bdt_entry_t {
     volatile unsigned short COUNT_RX;  // 0xc Reception byte count
     unsigned short PAD3;
 };
-
+/*
+ * BDT assumed at PMA offset 0 (USB->BTABLE = 0).
+ * If BTABLE is relocated, USB_BDT must be adjusted.
+ *  the USB PMA is 512 bytes, organised as 256 half-words, 
+ * but the CPU does not see it as a contiguous byte array. 
+ * Each 16-bit PMA half-word is mapped to a 32-bit slot on the CPU bus 
+ * The BDT (8 entries x 8 bytes) occupies PMA bytes 0..63
+ */
 
 
 /* BTABLE at PMA byte 0, 8 entries × 16 CPU bytes each = 128 CPU bytes.
@@ -53,31 +61,63 @@ struct usb_bdt_entry_t {
 #define PMA_EP1_RX    256U
 #define PMA_EP2_TX    320U
 
-  
 
-/* EPnR bits */
-#define EP_EA           (0xfU << 0) 
-#define EP_STAT_TX      (0x3U << 4) 
-#define EP_DTOG_TX      (0x1U << 6) 
-#define EP_CTR_TX       (0x1U << 7) 
-#define EP_KIND         (0x1U << 8) 
-#define EP_TYPE         (0x3U << 9) 
-#define EP_SETUP        (0x1U << 11)
-#define EP_STAT_RX      (0x3U << 12)
-#define EP_DTOG_RX      (0x1U << 14)
-#define EP_CTR_RX       (0x1U << 15)
 
-/* EP_TYPE bits */
-#define EP_TYPE_BULK    (0x0U << 9)
-#define EP_TYPE_CONTROL (0x1U << 9)
-#define EP_TYPE_ISO     (0x2U << 9)
-#define EP_TYPE_INT     (0x3U << 9)
+/* EPnR  reg */
+#define EP_ADDR_POS      0U
+#define EP_STAT_TX_POS   4U
+#define EP_TYPE_POS      9U
+#define EP_STAT_RX_POS   12U
 
-/* EP_STAT_TX / EP_STAT_RX state */
-#define EP_DISABLED     0x0U
-#define EP_STALL        0x1U
-#define EP_NAK          0x2U
-#define EP_VALID        0x3U
+#define EP_DTOG_TX       (1U << 6)
+#define EP_CTR_TX        (1U << 7)
+#define EP_KIND          (1U << 8)
+#define EP_SETUP         (1U << 11)
+#define EP_DTOG_RX       (1U << 14)
+#define EP_CTR_RX        (1U << 15)
+
+#define EP_ADDR_MASK     (0xfU << EP_ADDR_POS)
+#define EP_STAT_TX_MASK  (0x3U << EP_STAT_TX_POS)
+#define EP_TYPE_MASK     (0x3U << EP_TYPE_POS)
+#define EP_STAT_RX_MASK  (0x3U << EP_STAT_RX_POS)
+
+/* endpoint address encoding */
+#define EP_ADDR(x)       ((x) << EP_ADDR_POS)
+
+/* endpoint status encoding */
+#define EP_TX_STAT(x)    ((x) << EP_STAT_TX_POS)
+#define EP_RX_STAT(x)    ((x) << EP_STAT_RX_POS)
+
+/* endpoint types */
+enum {
+    EP_TYPE_BULK    = (0U << EP_TYPE_POS),
+    EP_TYPE_CONTROL = (1U << EP_TYPE_POS),
+    EP_TYPE_ISO     = (2U << EP_TYPE_POS),
+    EP_TYPE_INT     = (3U << EP_TYPE_POS)
+};
+
+/* Endpoint status */
+enum {
+    EP_DISABLED = 0,
+    EP_STALL,
+    EP_NAK,
+    EP_VALID
+};  
+
+/* ---------- BDT COUNT_RX ---------- */
+
+#define COUNT_NBYTES_POS         0U
+#define COUNT_NBYTES_MASK        0x03FFU
+
+#define COUNT_RX_NUM_BLOCK_POS   10U
+#define COUNT_RX_NUM_BLOCK_MASK  (0x1FU << COUNT_RX_NUM_BLOCK_POS)
+
+#define COUNT_RX_BLSIZE_POS      15U
+#define COUNT_RX_BLSIZE_MASK     (1U << COUNT_RX_BLSIZE_POS)
+
+/* 64-byte RX buffer */
+#define COUNT_RX_64B ((1U << COUNT_RX_BLSIZE_POS) | (1U << COUNT_RX_NUM_BLOCK_POS))
+
 
 /* ISTR bits */
 #define ISTR_EP_ID      (0xfU << 0)
@@ -101,9 +141,6 @@ struct usb_bdt_entry_t {
 #define CNTR_PMAOVRM    (0x1U << 14)
 #define CNTR_CTRM       (0x1U << 15)
 
-#define DADDR_EF        (0x1U << 7)
-
-void usb_clock_init(void);
-void usb_init(void);
+#define DADDR_EF        (0x1U << 7) /* en function */
 
 #endif /* USB_REGS_H */

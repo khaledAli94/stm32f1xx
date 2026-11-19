@@ -1,8 +1,4 @@
-#include <clock.h>
-#include <usb-regs.h>
-#include <gpio.h>
-#include <nested-vector.h>
-#include <flash-regs.h>
+#include <usb-core.h>
 
 /*
  * CDC requires 2 interfaces, 3 endpoints, and complex union/call-management descriptors
@@ -12,17 +8,9 @@
  * High-Speed 480 Mbit/s 512 bytes
 */
 
-enum ctrl_state_t {
-    CTRL_IDLE        = 0,
-    CTRL_DATA_OUT    = 1,
-    CTRL_SET_ADDRESS = 2,
-    CTRL_DATA_IN     = 3,
-    CTRL_STATUS_IN   = 5,
-    CTRL_STATUS_OUT  = 6
-};
 
 static unsigned char    usb_addr;
-static enum ctrl_state_t  ctrl_pending;
+static enum usb_ctrl_state_t  ctrl_pending;
 static unsigned char    ctrl_buf[128];
 static unsigned         ctrl_len;
 static unsigned         ctrl_pos;
@@ -32,119 +20,7 @@ unsigned char  bulk_tx_busy;
 static unsigned char  bulk_tx_buf[64];
 static unsigned       bulk_tx_len;
 
-static unsigned char  lc[7] = { 
-    0x00, 0xC2, 0x01, 0x00,  // 115200
-    0x00, // 1 stop bit 
-    0x00, // parity none
-    0x08 // data bits
-}; // Line Coding
 
-/* ---------- descriptors ---------- */
-static const unsigned char devd[] = {
-    18,       // bLength
-    0x01,     // DEVICE descriptor
-    0x00, 0x02, // USB 2.0
-    0x02,     // Device class
-    0x00,     // Subclass
-    0x00,     // Protocol
-    64,       // EP0 max packet size
-    0x83, 0x04, // VID
-    0x40, 0x57, // PID
-    0x00, 0x01, // Device release
-    0,        // Manufacturer string
-    0,        // Product string
-    0,        // Serial number string
-    1         // Number of configurations
-};
-_Static_assert(sizeof(devd) == 18, "dev descriptor size drift");
-static const unsigned char cfgd[] = {
-    /* Configuration Descriptor */
-    9,          // bLength
-    0x02,       // CONFIGURATION descriptor
-    0x43, 0x00, // wTotalLength = 67 bytes
-    2,          // bNumInterfaces
-    1,          // bConfigurationValue
-    0,          // iConfiguration
-    0x80,       // bmAttributes: Bus-powered, no remote wakeup
-    0x32,       // bMaxPower: 100mA
-
-    /* Interface 0: CDC Communication */
-    9,          // bLength
-    0x04,       // INTERFACE descriptor
-    0,          // bInterfaceNumber
-    0,          // bAlternateSetting
-    1,          // bNumEndpoints
-    0x02,       // bInterfaceClass: CDC Communication
-    0x02,       // bInterfaceSubClass: Abstract Control Model
-    0x01,       // bInterfaceProtocol: AT commands
-    0,          // iInterface
-
-    /* CDC Header Functional Descriptor */
-    5,          // bLength
-    0x24,       // CS_INTERFACE
-    0x00,       // Header Functional Descriptor
-    0x10, 0x01, // bcdCDC: CDC 1.10
-
-    /* CDC Call Management Functional Descriptor */
-    5,          // bLength
-    0x24,       // CS_INTERFACE
-    0x01,       // Call Management Functional Descriptor
-    0x00,       // bmCapabilities
-    0x01,       // bDataInterface: Interface 1
-
-    /* CDC Abstract Control Management (ACM) Descriptor */
-    4,          // bLength
-    0x24,       // CS_INTERFACE
-    0x02,       // ACM Functional Descriptor
-    0x02,       // bmCapabilities
-
-    /* CDC Union Functional Descriptor */
-    5,          // bLength
-    0x24,       // CS_INTERFACE
-    0x06,       // Union Functional Descriptor
-    0x00,       // bMasterInterface: Interface 0
-    0x01,       // bSlaveInterface0: Interface 1
-
-    /* Endpoint 2 IN: Interrupt */
-    7,          // bLength
-    0x05,       // ENDPOINT descriptor
-    0x82,       // bEndpointAddress: EP2 IN
-    0x03,       // bmAttributes: Interrupt
-    0x08, 0x00, // wMaxPacketSize: 8 bytes
-    0x0A,       // bInterval: 10
-
-    /* Interface 1: CDC Data */
-    9,          // bLength
-    0x04,       // INTERFACE descriptor
-    1,          // bInterfaceNumber
-    0,          // bAlternateSetting
-    2,          // bNumEndpoints
-    0x0A,       // bInterfaceClass: CDC Data
-    0x00,       // bInterfaceSubClass
-    0x00,       // bInterfaceProtocol
-    0,          // iInterface
-
-    /* Endpoint 1 IN: Bulk */
-    7,          // bLength
-    0x05,       // ENDPOINT descriptor
-    0x81,       // bEndpointAddress: EP1 IN
-    0x02,       // bmAttributes: Bulk
-    0x40, 0x00, // wMaxPacketSize: 64 bytes
-    0x00,       // bInterval
-
-    /* Endpoint 1 OUT: Bulk */
-    7,          // bLength
-    0x05,       // ENDPOINT descriptor
-    0x01,       // bEndpointAddress: EP1 OUT
-    0x02,       // bmAttributes: Bulk
-    0x40, 0x00, // wMaxPacketSize: 64 bytes
-    0x00        // bInterval
-};
-_Static_assert(sizeof(cfgd) == 67, "cfgd descriptor size drift");
-
-static const unsigned char str0[] = { 4, 0x03, 0x09, 0x04 };
-
-/* ---------- clock, using the enums from clock.h ---------- */
 void usb_clock_init(void) {
     /* Flash: 2 wait states + prefetch (needed for 72 MHz on F103) */
     flash_set_latency(72000000);
@@ -186,11 +62,12 @@ static void pma_read16(unsigned b, unsigned char *d, unsigned n) {
 }
 
 /* ---------- EPnR and packet transfer events handlers --------- */
-static inline void ep_set(unsigned ep, unsigned mask, unsigned data) {
+static inline void ep_set(unsigned ep, unsigned mask, unsigned data)
+{
     unsigned old = USB->EPR[ep];
-    unsigned rc_w0  = (EP_CTR_RX | EP_CTR_TX) ;
-    unsigned toggle = (EP_DTOG_RX | EP_STAT_RX | EP_DTOG_TX | EP_STAT_TX);
-    unsigned rw     = (EP_TYPE | EP_KIND | EP_EA);
+    unsigned rc_w0 = EP_CTR_RX | EP_CTR_TX;
+    unsigned toggle = EP_DTOG_RX | EP_STAT_RX_MASK | EP_DTOG_TX | EP_STAT_TX_MASK;
+    unsigned rw = EP_TYPE_MASK | EP_KIND | EP_ADDR_MASK;
 
     unsigned wr0 = rc_w0 & (~mask | data);
     unsigned wr1 = (mask & toggle) & (old ^ data);
@@ -199,19 +76,21 @@ static inline void ep_set(unsigned ep, unsigned mask, unsigned data) {
     USB->EPR[ep] = (unsigned short)(wr0 | wr1 | wr2);
 }
 
-static void ep_set_tx(unsigned ep, unsigned s) {
-    ep_set(ep, 0x0030U, s << 4);
+static void ep_set_tx(unsigned ep, unsigned stat)
+{
+    ep_set(ep, EP_STAT_TX_MASK, EP_TX_STAT(stat));
 }
-static void ep_set_rx(unsigned ep, unsigned s) {
-    if (ep == 0) USB_BD_AT(0)->COUNT_RX = 0x8400;
-    else if (ep == 1) USB_BD_AT(1)->COUNT_RX = 0x8400;
-    ep_set(ep, 0x3000U, s << 12);
+static void ep_set_rx(unsigned ep, unsigned stat)
+{
+    ep_set(ep, EP_STAT_RX_MASK, EP_RX_STAT(stat));
 }
-static void ep_clear_ctr_rx(unsigned ep) {
-    ep_set(ep, 0x8000U, 0);
+static void ep_clear_ctr_rx(unsigned ep)
+{
+    ep_set(ep, EP_CTR_RX, 0);
 }
-static void ep_clear_ctr_tx(unsigned ep) {
-    ep_set(ep, 0x0080U, 0);
+static void ep_clear_ctr_tx(unsigned ep)
+{
+    ep_set(ep, EP_CTR_TX, 0);
 }
 
 /* ---------- init ---------- */
@@ -233,9 +112,9 @@ void usb_init(void) {
     USB->BTABLE = 0;                             /* BTABLE at PMA byte 0 */
 
     /* EP0: control, RX valid, TX NAK */
-    ep_set(0, 0xFFFFU, EP_TYPE_CONTROL | (EP_NAK << 4) | (EP_VALID << 12));
-    USB_BD_AT(0)->ADDR_RX  = PMA_EP0_RX;  USB_BD_AT(0)->COUNT_RX = 0x8400;
-    USB_BD_AT(0)->ADDR_TX  = PMA_EP0_TX;  USB_BD_AT(0)->COUNT_TX = 0;
+    ep_set(0, 0xFFFFU, EP_TYPE_CONTROL | EP_TX_STAT(EP_NAK) | EP_RX_STAT(EP_VALID));
+    USB_BD_AT(0)->ADDR_RX = PMA_EP0_RX; USB_BD_AT(0)->COUNT_RX = COUNT_RX_64B;
+    USB_BD_AT(0)->ADDR_TX = PMA_EP0_TX; USB_BD_AT(0)->COUNT_TX = 0;
 
     USB->CNTR  = CNTR_CTRM | CNTR_RESETM | CNTR_SUSPM | CNTR_WKUPM;
     NVIC->ISER[0] = (1U << 20);   /* NVIC USB_LP */
@@ -264,67 +143,64 @@ static void ep0_setup(void) {
 
     ctrl_len = 0; ctrl_pos = 0; ctrl_pending = CTRL_IDLE;
 
-    if ((bmReq & 0x60U) == 0x00U) {                    /* standard */
-        if (bReq == 0x06U) {                            /* GET_DESCRIPTOR */
+    if ((bmReq & 0x60U) == USB_REQ_STANDARD) {
+        if (bReq == REQ_GET_DESCRIPTOR) {
             unsigned type = wVal >> 8;
             const unsigned char *src = 0; unsigned n = 0;
-            if      (type == 0x01U) { src = devd; n = sizeof(devd); }
-            else if (type == 0x02U) { src = cfgd; n = sizeof(cfgd); }
-            else if (type == 0x03U && (wVal & 0xFFU) == 0) { src = str0; n = sizeof(str0);}
+            if      (type == USB_DESC_DEVICE) { src = devd; n = sizeof(devd); }
+            else if (type == USB_DESC_CONFIGURATION) { src = cfgd; n = sizeof(cfgd); }
+            else if (type == USB_DESC_STRING && (wVal & 0xFFU) == 0) { src = str0; n = sizeof(str0);}
             if (!src) { ep_set_tx(0, EP_STALL); ep_set_rx(0, EP_STALL); return; }
             if (n > sizeof(ctrl_buf)) n = sizeof(ctrl_buf);
             if (n > wLen) n = wLen;
             { unsigned i; for (i = 0; i < n; i++) ctrl_buf[i] = src[i]; }
             ctrl_len = n;
             ep0_send_chunk();
-        } else if (bReq == 0x05U) {                     /* SET_ADDRESS */
+        } else if (bReq == REQ_SET_ADDRESS) {
             usb_addr = (unsigned char)(wVal & 0x7FU);
             USB_BD_AT(0)->COUNT_TX = 0;
             ctrl_pending = CTRL_SET_ADDRESS;
             ep_set_tx(0, EP_VALID);
-        } else if (bReq == 0x09U) {                     /* SET_CONFIGURATION */
+        } else if (bReq == REQ_SET_CONFIGURATION) {
             if (wVal) {
                 USB_BD_AT(1)->ADDR_TX = PMA_EP1_TX;  USB_BD_AT(1)->COUNT_TX = 0;
-                USB_BD_AT(1)->ADDR_RX = PMA_EP1_RX;  USB_BD_AT(1)->COUNT_RX = 0x8400;
-                ep_set(1, 0xFFFFU, 0x0001U | EP_TYPE_BULK
-                                 | (EP_NAK << 4) | (EP_VALID << 12));
-
+                USB_BD_AT(1)->ADDR_RX = PMA_EP1_RX;  USB_BD_AT(1)->COUNT_RX = COUNT_RX_64B;
+                ep_set(1, 0xFFFFU, EP_ADDR(1) | EP_TYPE_BULK | EP_TX_STAT(EP_NAK) | EP_RX_STAT(EP_VALID));
                 USB_BD_AT(2)->ADDR_TX = PMA_EP2_TX;  USB_BD_AT(2)->COUNT_TX = 0;
-                ep_set(2, 0xFFFFU, 0x0002U | EP_TYPE_INT
-                                 | (EP_NAK << 4) | (EP_DISABLED << 12));
+                ep_set(2, 0xFFFFU, EP_ADDR(2) | EP_TYPE_INT | EP_TX_STAT(EP_NAK) | EP_RX_STAT(EP_DISABLED));
             }
             USB_BD_AT(0)->COUNT_TX = 0;
             ctrl_pending = CTRL_STATUS_IN;
             ep_set_tx(0, EP_VALID);
-        } else if (bReq == 0x00U) {                     /* GET_STATUS */
+        } else if (bReq == REQ_GET_STATUS) {
             ctrl_buf[0] = 0; ctrl_buf[1] = 0;
             ctrl_len = 2;
             ep0_send_chunk();
-        } else if (bReq == 0x01U || bReq == 0x03U) {    /* CLEAR_FEATURE / SET_FEATURE */
+        } else if (bReq == REQ_CLEAR_FEATURE || bReq == REQ_SET_FEATURE) {
             USB_BD_AT(0)->COUNT_TX = 0;
             ctrl_pending = CTRL_STATUS_IN;
             ep_set_tx(0, EP_VALID);
-        } else if (bReq == 0x0BU) {                     /* SET_INTERFACE */
+        } else if (bReq == REQ_SET_INTERFACE) {
             USB_BD_AT(0)->COUNT_TX = 0;
             ctrl_pending = CTRL_STATUS_IN;
             ep_set_tx(0, EP_VALID);
-        } else if (bReq == 0x0AU) {                     /* GET_INTERFACE */
+        } else if (bReq == REQ_GET_INTERFACE) {
             ctrl_buf[0] = 0;
             ctrl_len = 1;
             ep0_send_chunk();
         } else {
             ep_set_tx(0, EP_STALL); ep_set_rx(0, EP_STALL);
         }
-    } else if ((bmReq & 0x60U) == 0x20U) {              /* CDC class */
-        if (bReq == 0x20U) {                            /* SET_LINE_CODING */
+    } else if ((bmReq & 0x60U) == USB_REQ_CLASS) {
+        if (bReq == CDC_SET_LINE_CODING) {
             ctrl_len = (wLen < 7) ? wLen : 7;
             ctrl_pos = 0;
             ctrl_pending = CTRL_DATA_OUT;
             ep_set_rx(0, EP_VALID);
-        } else if (bReq == 0x21U) {                     /* GET_LINE_CODING */
+        } else if (bReq == CDC_GET_LINE_CODING) {
             unsigned i; for (i = 0; i < 7; i++) ctrl_buf[i] = lc[i];
             ctrl_len = 7; ep0_send_chunk();
-        } else if (bReq == 0x22U) {                     /* SET_CONTROL_LINE_STATE */
+        } else if (bReq == CDC_SET_CONTROL_LINE_STATE) {
             USB_BD_AT(0)->COUNT_TX = 0;
             ctrl_pending = CTRL_STATUS_IN;
             ep_set_tx(0, EP_VALID);
@@ -339,7 +215,7 @@ static void ep0_setup(void) {
 static void ep0_in(void) {
     ep_clear_ctr_tx(0);
     if (ctrl_pending == CTRL_SET_ADDRESS) {
-        USB->DADDR = usb_addr | 0x80U;
+        USB->DADDR = usb_addr | DADDR_EF;
         ctrl_pending = CTRL_IDLE;
         ep_set_rx(0, EP_VALID);
     } else if (ctrl_pending == CTRL_DATA_IN) {
@@ -353,7 +229,7 @@ static void ep0_in(void) {
 }
 
 static void ep0_out(void) {
-    unsigned cnt = USB_BD_AT(0)->COUNT_RX & 0x3FFU;
+    unsigned cnt = USB_BD_AT(0)->COUNT_RX & COUNT_NBYTES_MASK;
     ep_clear_ctr_rx(0);
     if (ctrl_pending == CTRL_DATA_OUT) {
         pma_read16(PMA_EP0_RX, ctrl_buf + ctrl_pos, cnt);
@@ -388,7 +264,7 @@ int cdc_send_data(const unsigned char *data, unsigned len) {
 
 static void ep1_out(void) {
     unsigned char buf[64];
-    unsigned cnt = USB_BD_AT(1)->COUNT_RX & 0x3FFU;
+    unsigned cnt = USB_BD_AT(1)->COUNT_RX & COUNT_NBYTES_MASK;
     ep_clear_ctr_rx(1);
     pma_read16(PMA_EP1_RX, buf, cnt);
 
@@ -412,12 +288,17 @@ void USB_LP_CAN1_RX0_IRQHandler(void) {
 
     if (istr & ISTR_RESET) {
         USB->ISTR = ~ISTR_RESET;
-        usb_addr = 0; ctrl_pending = CTRL_IDLE; bulk_tx_busy = 0;
+        usb_addr = 0;
+        ctrl_pending = CTRL_IDLE;
+        bulk_tx_busy = 0;
         USB->DADDR = DADDR_EF;  /* EF, ADD[0-6] = 0 */
         USB->CNTR  = 0;
-        ep_set(0, 0xFFFFU, EP_TYPE_CONTROL | (EP_NAK << 4) | (EP_VALID << 12));
-        USB_BD_AT(0)->COUNT_RX = ((0x1U << 15) | (0x1U << 10)); // 64 byte == BLSIZE=1 -> 32B units, NUM_BLOCK=1 -> 2 blocks
+        ep_set(0, 0xFFFFU, EP_TYPE_CONTROL | EP_TX_STAT(EP_NAK) | EP_RX_STAT(EP_VALID));
+        USB_BD_AT(0)->ADDR_RX = PMA_EP0_RX;
+        USB_BD_AT(0)->COUNT_RX = COUNT_RX_64B;  // 64 byte == BLSIZE=1 -> 32B units, NUM_BLOCK=1 -> 2 blocks
+        USB_BD_AT(0)->ADDR_TX = PMA_EP0_TX;
         USB_BD_AT(0)->COUNT_TX = 0;
+
         USB->CNTR = CNTR_CTRM | CNTR_RESETM | CNTR_SUSPM | CNTR_WKUPM;
         return;
     }
@@ -452,7 +333,7 @@ void USB_LP_CAN1_RX0_IRQHandler(void) {
     }
 }
 
-/* exmple usgae */
+/* usgae */
 // int main(){
 
 //     /* Enable GPIOC clock */
