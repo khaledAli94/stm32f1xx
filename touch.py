@@ -1,7 +1,7 @@
 import serial
 import threading
 
-PORT = 'COM8'
+PORT = 'COM9'
 BAUD = 115200
 
 def parse_line(raw):

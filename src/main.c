@@ -5,14 +5,15 @@
 #include <i2c.h>
 #include <nested-vector.h>
 #include <sys-ctrl-blk.h>
-#include <usb-regs.h>
+#include <usb-core.h>
 
-extern volatile unsigned char  _sbss[], _ebss [], _sidata[] ;
-extern volatile unsigned char   _sdata[] , _edata[];
-extern volatile unsigned long  _estack[];
-extern void (* const g_pfnVectors[])(void);
 
 void crt0_init(void){
+    extern volatile unsigned char  _sbss[], _ebss [], _sidata[] ;
+    extern volatile unsigned char   _sdata[] , _edata[];
+    extern volatile unsigned long  _estack[];
+    extern void (* const g_pfnVectors[])(void);
+
     volatile unsigned long *src, *dst;
     volatile unsigned char *byte_src, *byte_dst;
 
@@ -33,7 +34,6 @@ void crt0_init(void){
     byte_dst = (unsigned char *) dst;
     while (byte_dst < (unsigned char *) &_ebss) { *byte_dst++ = 0; }
 }
-
 
 int main() {
 
