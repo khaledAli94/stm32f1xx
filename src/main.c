@@ -2,6 +2,7 @@
 #include <clock.h>
 #include <gpio.h>
 #include <spi.h>
+#include <i2c.h>
 #include <nested-vector.h>
 #include <sys-ctrl-blk.h>
 #include <usb-regs.h>
@@ -33,27 +34,8 @@ void crt0_init(void){
     while (byte_dst < (unsigned char *) &_ebss) { *byte_dst++ = 0; }
 }
 
-int main(){
 
-    /* Enable GPIOC clock */
-    RCC->APB2ENR |= (1U << 4);  /* IOPCEN */
-
-    /* Configure PC13 as Output Push-Pull 2MHz */
-    GPIOC->CRH = (GPIOC->CRH & ~0x00F00000U) | 0x00200000U;
-
-    /* Default LED state: OFF (active low -> set high) */
-    GPIOC->BSRR = (1U << 13);
-
-    usb_clock_init();
-    __asm__("cpsie i");  /* Enable global interrupts */
-    usb_init();
-
-    
-    while (1)
-    {
-        __asm__("wfi");  /* wakeup on intterupt */
-    }
-    
+int main() {
 
     return 0;
 }

@@ -5,10 +5,11 @@
 #include <flash-regs.h>
 
 /*
-* per modemax bulk packet sz
-* Low-Speed  1.5 Mbit/s 8 bytes
-* Full-Speed 12 Mbit/s 64 bytes
-* High-Speed 480 Mbit/s 512 bytes
+ * CDC requires 2 interfaces, 3 endpoints, and complex union/call-management descriptors
+ * per modemax bulk packet sz
+ * Low-Speed  1.5 Mbit/s 8 bytes
+ * Full-Speed 12 Mbit/s 64 bytes
+ * High-Speed 480 Mbit/s 512 bytes
 */
 
 enum ctrl_state_t {
@@ -26,7 +27,8 @@ static unsigned char    ctrl_buf[128];
 static unsigned         ctrl_len;
 static unsigned         ctrl_pos;
 
-static unsigned char  bulk_tx_busy;
+// static unsigned char  bulk_tx_busy;
+unsigned char  bulk_tx_busy;
 static unsigned char  bulk_tx_buf[64];
 static unsigned       bulk_tx_len;
 
@@ -397,9 +399,9 @@ static void ep1_out(void) {
             GPIOC->BSRR = (1U << 13);  /* LED OFF (pull high) */
             }
         /* echo back, but only if the IN path is free */
-        if (!bulk_tx_busy && cnt > 0) {
-            cdc_send_data(buf, cnt);
-        }
+        // if (!bulk_tx_busy && cnt > 0) {
+        //     cdc_send_data(buf, cnt);
+        // }
     }
     ep_set_rx(1, EP_VALID);
 }

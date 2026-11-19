@@ -1,7 +1,5 @@
-# Prerequisites
-*.d
-
 # GCC files
+*.d
 *.o
 *.obj
 *.su
@@ -9,7 +7,6 @@
 *.sym
 
 # Linker output
-
 *.map
 
 # Executables
@@ -17,16 +14,12 @@
 *.elf
 *.out
 *.hex
+*bootloader
 
-*bootloader 
-
-# linux 
+# linux wsl
 *:Zone.Identifier
-*makefile
 
 #unwanted
 *makefile
 /.vscode
-.instructions
-.brainstorming
-
+/doc
