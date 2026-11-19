@@ -186,6 +186,7 @@ void rcc_apb2_prescaler_config(unsigned prescaler);
 void rcc_adc_prescaler_config(unsigned prescaler);
 void rcc_usb_prescaler_config(unsigned prescaler); 
 void rcc_mco_config(unsigned source);
+
 void rcc_gpioa_enable(void);
 void rcc_gpiob_enable(void);
 void rcc_gpioc_enable(void);

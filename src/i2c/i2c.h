@@ -62,5 +62,22 @@ struct i2c_t {
 #define I2C_CCR_DUTY        (1U << 14)
 
 
+#define I2C_TIMEOUT_CYCLES 100000U
+
+/* Driver Status Codes */
+#define I2C_OK               0
+#define I2C_ERR_TIMEOUT     -1
+#define I2C_ERR_NACK        -2
+#define I2C_ERR_BUS         -3
+#define I2C_ERR_BUSY        -4
+
+
+
+
+void i2c_init(volatile struct i2c_t *i2c, unsigned speed_hz);
+int  i2c_write(volatile struct i2c_t *i2c, unsigned char addr, const unsigned char *data, unsigned short len);
+int  i2c_read(volatile struct i2c_t *i2c, unsigned char addr, unsigned char *data, unsigned short len);
+int i2c_write_reg(volatile struct i2c_t *i2c, unsigned char addr, unsigned char reg, const unsigned char *data, unsigned short len);
+int i2c_read_reg(volatile struct i2c_t *i2c, unsigned char addr, unsigned char reg, unsigned char *data, unsigned short len);
 
 #endif /* I2C_H */
