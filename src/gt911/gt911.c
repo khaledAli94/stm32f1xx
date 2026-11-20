@@ -1,0 +1,109 @@
+#include <gt911.h>
+#include <gpio.h>
+#include <clock.h>
+#include <alter-func.h>
+#include <external-intr.h>
+#include <nested-vector.h>
+
+/* 
+ GT911 requires 16-bit big-endian reg addr, we pack that addr in raw i2c read/write 
+ rst sequence : pulling (PB8) low for 15 ms while INT (PB5) low latches 0x5D addr
+ INT pin must be floating input after reset sequence and trigger interrupt based on gt911 0x804D reg.
+  */
+
+volatile uint8_t gt911_irq_flag = 0;
+
+static void delay_ms(uint32_t ms)
+{
+    for (uint32_t i = 0; i < ms * 8000U; i++) {
+        __asm__ volatile ("nop");
+    }
+}
+
+static int gt911_read_reg(volatile struct i2c_t *i2c, uint16_t reg, uint8_t *buf, uint16_t len)
+{
+    uint8_t addr_bytes[2] = { (uint8_t)(reg >> 8), (uint8_t)(reg & 0xFFU) };
+
+    if (i2c_write(i2c, GT911_ADDR_5D, addr_bytes, 2U) != I2C_OK) return -1;
+    return i2c_read(i2c, GT911_ADDR_5D, buf, len);
+}
+
+static int gt911_write_reg(volatile struct i2c_t *i2c, uint16_t reg, const uint8_t *data, uint16_t len)
+{
+    uint8_t tx[256];
+    if (len > sizeof(tx) - 2U) return -1;
+
+    tx[0] = (uint8_t)(reg >> 8);
+    tx[1] = (uint8_t)(reg & 0xFFU);
+    for (uint16_t i = 0; i < len; i++) tx[2U + i] = data[i];
+
+    return i2c_write(i2c, GT911_ADDR_5D, tx, (uint16_t)(len + 2U));
+}
+
+int gt911_init(volatile struct i2c_t *i2c)
+{
+    rcc_gpiob_enable();
+    rcc_afio_enable();
+
+    /* 1. Drive both RST (PB8) and INT (PB5) LOW to select address 0x5D */
+    gpio_pin_mode(GPIOB, PIN_8, GPIO_OUTPUT_PP_2MHZ);
+    gpio_pin_mode(GPIOB, PIN_5, GPIO_OUTPUT_PP_2MHZ);
+    GPIOB->BRR = (1U << 8) | (1U << 5);
+    delay_ms(15);
+
+    /* 2. Release RST (PB8) HIGH while INT (PB5) is still LOW */
+    GPIOB->BSRR = (1U << 8);
+    delay_ms(6);
+
+    /* 3. Switch INT (PB5) to floating input BEFORE GT911 drives it */
+    gpio_pin_mode(GPIOB, PIN_5, GPIO_INPUT_FLOATING);
+    delay_ms(60);
+
+    /* 4. Route PB5 to EXTI5 and configure interrupt on rising edge */
+    AFIO->EXTICR2 &= ~(0xFU << 4);
+    AFIO->EXTICR2 |=  (0x1U << 4);
+
+    EXTI->RTSR |=  (1U << 5);
+    EXTI->FTSR &= ~(1U << 5);
+    EXTI->PR    =  (1U << 5);
+    EXTI->IMR  |=  (1U << 5);
+
+    NVIC_EnableIRQ(EXTI9_5_IRQn);
+
+
+    /* 5. Verify Product ID ("911") and clear status register */
+    uint8_t id[4] = {0};
+    if (gt911_read_reg(i2c, GT911_REG_PRODUCT_ID, id, 4U) != I2C_OK) return -1;
+    if (id[0] != '9' || id[1] != '1' || id[2] != '1') return -1;
+
+    uint8_t zero = 0;
+    return gt911_write_reg(i2c, GT911_REG_POINT_STATUS, &zero, 1U);
+}
+
+int gt911_read_points(struct gt911_point_t *points, uint8_t *count)
+{
+    uint8_t status = 0, zero = 0;
+    *count = 0;
+
+    if (gt911_read_reg(I2C1, GT911_REG_POINT_STATUS, &status, 1U) != I2C_OK) return -1;
+    if (!(status & 0x80U)) return 0;
+
+    uint8_t n = status & 0x0FU;
+    if (n > GT911_MAX_TOUCHES) n = GT911_MAX_TOUCHES;
+
+    if (n > 0U) {
+        uint8_t raw[GT911_MAX_TOUCHES * 8U];
+        if (gt911_read_reg(I2C1, GT911_REG_POINT_DATA, raw, (uint16_t)(n * 8U)) != I2C_OK) return -1;
+
+        for (uint8_t i = 0; i < n; i++) {
+            uint8_t *p = &raw[i * 8U];
+            points[i].id   = p[0];
+            points[i].x    = (uint16_t)p[1] | ((uint16_t)p[2] << 8);
+            points[i].y    = (uint16_t)p[3] | ((uint16_t)p[4] << 8);
+            points[i].size = (uint16_t)p[5] | ((uint16_t)p[6] << 8);
+        }
+    }
+
+    *count = n;
+    return gt911_write_reg(I2C1, GT911_REG_POINT_STATUS, &zero, 1U);
+}
