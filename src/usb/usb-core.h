@@ -4,7 +4,8 @@
 #include <usb-regs.h>
 #include <usb-desc.h>
 
-#include <clock.h>
+#include <rcc.h>
+#include <systick.h>
 #include <gpio.h>
 #include <nested-vector.h>
 #include <flash-regs.h>

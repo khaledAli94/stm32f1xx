@@ -1,6 +1,7 @@
 #include <gt911.h>
 #include <gpio.h>
-#include <clock.h>
+#include <rcc.h>
+#include <systick.h>
 #include <alter-func.h>
 #include <external-intr.h>
 #include <nested-vector.h>
@@ -12,13 +13,6 @@
   */
 
 volatile uint8_t gt911_irq_flag = 0;
-
-static void delay_ms(uint32_t ms)
-{
-    for (uint32_t i = 0; i < ms * 8000U; i++) {
-        __asm__ volatile ("nop");
-    }
-}
 
 static int gt911_read_reg(volatile struct i2c_t *i2c, uint16_t reg, uint8_t *buf, uint16_t len)
 {

@@ -1,5 +1,6 @@
+#include <rcc.h>
+#include <systick.h>
 #include <i2c.h>
-#include <clock.h>
 #include <gpio.h>
 
 static int wait_flag(volatile struct i2c_t *i2c, uint32_t flag)

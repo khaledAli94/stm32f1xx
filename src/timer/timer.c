@@ -1,5 +1,5 @@
 #include <timer.h>
-#include <clock.h>
+#include <rcc.h>
 #include <gpio.h>
 #include <nested-vector.h>
 
@@ -21,110 +21,60 @@ void tim1_init(void) {
     NVIC_EnableIRQ(TIM1_UP_IRQn);
 }
 
-
-/*
-
-#ifndef SYSTICK_H
-#define SYSTICK_H
-
-void systick_init(void);
-
-unsigned int millis(void);
-void delay(unsigned int ms);
-
-#endif
-
-
-
-#include "stm32f10x.h"
-#include "systick.h"
-
-static volatile unsigned int ms_ticks = 0;
-
-void systick_init(void)
-{
-    // 72 MHz / 72000 = 1 kHz (1 ms)
-    SysTick->LOAD = 72000 - 1;
-    SysTick->VAL  = 0;
-
-    SysTick->CTRL =
-        SysTick_CTRL_CLKSOURCE_Msk |
-        SysTick_CTRL_TICKINT_Msk   |
-        SysTick_CTRL_ENABLE_Msk;
-}
-
-void SysTick_Handler(void)
-{
-    ms_ticks++;
-}
-
-unsigned int millis(void)
-{
-    return ms_ticks;
-}
-
-void delay(unsigned int ms)
-{
-    unsigned int start = millis();
-
-    while ((unsigned int)(millis() - start) < ms)
-    {
-    }
-}
-
-
-#ifndef TIM2_H
-#define TIM2_H
-
-void tim2_init(void);
-
-unsigned short micros(void);
-void delay_micros(unsigned short us);
-
-#endif
-
-
-
-#include "stm32f10x.h"
-#include "tim2.h"
-
 void tim2_init(void)
 {
-    // Enable TIM2 clock
-    RCC->APB1ENR |= RCC_APB1ENR_TIM2EN;
+    rcc_tim2_enable();
 
-    // 72 MHz / 72 = 1 MHz
-    TIM2->PSC = 72 - 1;
+    /* APB1 timer clock is PCLK1 * 2 whenever APB1 prescaler != 1 */
+    uint32_t pclk1   = rcc_get_pclk1_frequency();
+    uint32_t tim_clk = (pclk1 == rcc_get_hclk_frequency()) ? pclk1 : (pclk1 * 2U);
 
-    // 16-bit counter
-    TIM2->ARR = 0xFFFF;
-
-    TIM2->CNT = 0;
-
-    // Load prescaler
-    TIM2->EGR = TIM_EGR_UG;
-
-    // Clear flags
-    TIM2->SR = 0;
-
-    // Start timer
-    TIM2->CR1 |= TIM_CR1_CEN;
+    TIM2->CR1 = 0U;
+    TIM2->PSC = (tim_clk / 1000000U) - 1U; // 1 tick = 1 us
+    TIM2->ARR = 0xFFFFU;                   // Free-running 16-bit wrap
+    TIM2->CNT = 0U;
+    TIM2->EGR = 1U;                        // UG: Latch prescaler immediately
+    TIM2->SR  = 0U;                        // Clear update flag
+    TIM2->CR1 = 1U;                        // CEN: Start hardware counter
 }
 
-unsigned short micros(void)
+uint16_t micros(void)
 {
-    return (unsigned short)TIM2->CNT;
+    return (uint16_t)TIM2->CNT;
 }
 
-void delay_micros(unsigned short us)
+void delay_micros(uint16_t us)
 {
-    unsigned short start = micros();
-
-    while ((unsigned short)(micros() - start) < us)
-    {
+    uint16_t start = micros();
+    while ((uint16_t)(micros() - start) < us) {
+        /* spin */
     }
 }
 
 
+/*
+ tim2 benchmark test
+ int main(void)
+{
+    rcc_sysclk_hse_72mhz();
+    systick_init();
+    timer_init();
+    __asm__ volatile ("cpsie i");
 
- */
+    delay_ms(50);
+    delay_us(150);
+
+    uint32_t t_10ms  = millis();
+    uint16_t t_500us = micros();
+
+    while (1) {
+        if ((uint32_t)(millis() - t_10ms) >= 10U) {
+            t_10ms += 10U; // Drift-free 10 ms task
+        }
+
+        if ((uint16_t)(micros() - t_500us) >= 500U) {
+            t_500us += 500U; // Drift-free 500 us task
+        }
+    }
+}
+*/

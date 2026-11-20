@@ -1,5 +1,6 @@
 #include <timer.h>
-#include <clock.h>
+#include <rcc.h>
+#include <systick.h>
 #include <gpio.h>
 #include <spi.h>
 #include <i2c.h>
@@ -45,19 +46,14 @@ void *memset(void *dst, int c, unsigned int n)
     return dst;
 }
 
-
-static void delay_ms(uint32_t ms)
-{
-    /* Rough busy-wait assuming ~72 MHz SYSCLK (adjust if running at 8 MHz HSI) */
-    for (uint32_t i = 0; i < ms * 8000U; i++) {
-        __asm__ volatile ("nop");
-    }
-}
-
 int main()
 {
     /* 1. Initialize system clocks (72 MHz PLL or default 8 MHz HSI) */
     rcc_sysclk_hse_72mhz();
+
+    systick_init();
+    tim2_init();
+    __asm__ volatile ("cpsie i");
     
     /* 2. Wait for GT911 internal power-on reset (~100 ms since RST is tied to 3.3V) */
     delay_ms(100);
@@ -74,7 +70,6 @@ int main()
 
     struct gt911_point_t points[GT911_MAX_TOUCHES] = {0};
     uint8_t count = 0;
-    __asm__ volatile ("cpsie i");
 
 
     while (1) {
