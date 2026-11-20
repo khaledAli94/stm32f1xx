@@ -1,8 +1,12 @@
-#include <timer.h>
-#include <clock.h>
-#include <gpio.h>
 #include <nested-vector.h>
+#include <rcc.h>
+#include <systick.h>
+#include <timer.h>
+#include <external-intr.h>
+#include <gt911.h>
+#include <gpio.h>
 
+/* either define here or weak-alise elsewhere */
 
 void NMI_Handler(void){}
 void HardFault_Handler(void){ for(;;); }
@@ -13,7 +17,7 @@ void SVC_Handler(void){}
 void DebugMon_Handler(void){}
 void PendSV_Handler(void){}
 void SysTick_Handler(void){
-  GPIOC->ODR ^= (1U << 13); // led toggle debug
+    ms_ticks++;
 }
 void WWDG_IRQHandler(void){}
 void PVD_IRQHandler(void){}
@@ -40,7 +44,13 @@ __attribute__((weak))
 void USB_LP_CAN1_RX0_IRQHandler(void){}
 void CAN1_RX1_IRQHandler(void){}
 void CAN1_SCE_IRQHandler(void){}
-void EXTI9_5_IRQHandler(void){}
+void EXTI9_5_IRQHandler(void)
+{
+    if (EXTI->PR & (1U << 5)) {
+        EXTI->PR = (1U << 5);
+        gt911_irq_flag = 1;
+    }
+}
 
 void TIM1_BRK_IRQHandler(void){}
 __attribute__((interrupt("IRQ")))

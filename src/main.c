@@ -1,8 +1,10 @@
 #include <timer.h>
-#include <clock.h>
+#include <rcc.h>
+#include <systick.h>
 #include <gpio.h>
 #include <spi.h>
 #include <i2c.h>
+#include <gt911.h>
 #include <nested-vector.h>
 #include <sys-ctrl-blk.h>
 #include <usb-core.h>
@@ -35,7 +37,57 @@ void crt0_init(void){
     while (byte_dst < (unsigned char *) &_ebss) { *byte_dst++ = 0; }
 }
 
-int main() {
+void *memset(void *dst, int c, unsigned int n)
+{
+    unsigned char *p = (unsigned char *)dst;
+    while (n--) {
+        *p++ = (unsigned char)c;
+    }
+    return dst;
+}
+
+int main()
+{
+    /* 1. Initialize system clocks (72 MHz PLL or default 8 MHz HSI) */
+    rcc_sysclk_hse_72mhz();
+
+    systick_init();
+    tim2_init();
+    __asm__ volatile ("cpsie i");
+    
+    /* 2. Wait for GT911 internal power-on reset (~100 ms since RST is tied to 3.3V) */
+    delay_ms(100);
+
+    /* 3. Initialize I2C1 at 400 kHz Fast Mode (PB6 = SCL, PB7 = SDA) */
+    i2c_init(I2C1, 400000U);
+
+    /* 4. Probe GT911 at 0x5D, configure PB5 as floating input, clear status */
+    if (gt911_init(I2C1) != 0) {
+        while (1) {
+            /* Error: GT911 did not respond at 0x5D (check pull-ups or if latched at 0x14) */
+        }
+    }
+
+    struct gt911_point_t points[GT911_MAX_TOUCHES] = {0};
+    uint8_t count = 0;
+
+
+    while (1) {
+        if (gt911_irq_flag) {
+            gt911_irq_flag = 0;
+            if (gt911_read_points(points, &count) == 0 && count > 0) {
+                for (uint8_t i = 0; i < count; i++) {
+                    uint8_t  id   = points[i].id;
+                    uint16_t x    = points[i].x;
+                    uint16_t y    = points[i].y;
+                    uint16_t size = points[i].size;
+
+                    /* Process touch coordinates (x, y) here */
+                    (void)id; (void)x; (void)y; (void)size;
+                }
+            }
+        }
+    }
 
     return 0;
 }

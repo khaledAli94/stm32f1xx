@@ -1,6 +1,7 @@
+#include <rcc.h>
+#include <systick.h>
 #include <spi.h>
 #include <gpio.h>
-#include <clock.h>
 
 /* SPI Driver Functions */
 void spi_init_master(volatile struct spi_t *spi, unsigned baud_rate) {

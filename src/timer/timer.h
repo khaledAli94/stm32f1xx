@@ -1,6 +1,8 @@
 #ifndef TIMER_H
 #define TIMER_H
 
+#include <stdint.h>
+
 #define TIM1_BASE 0x40012C00UL
 #define TIM2_BASE 0x40000000UL
 #define TIM3_BASE 0x40000400UL
@@ -59,5 +61,13 @@ struct timer_t {
 
 
 void tim1_init(void);
+
+ /* TODO : unifiy timers handling */
+
+
+void tim2_init(void);
+uint16_t micros(void);
+void delay_micros(uint16_t us);
+
 
 #endif /* TIMER_H */

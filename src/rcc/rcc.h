@@ -1,18 +1,9 @@
-#ifndef CLOCK_H
-#define CLOCK_H
+#ifndef RCC_H
+#define RCC_H
 
-#define SYSTICK_BASE 0xE000E010UL
-#define SYSTICK ((struct systick_t *) SYSTICK_BASE)
 
 #define RCC_BASE 0x40021000UL
 #define RCC ((struct rcc_t *) RCC_BASE)
-
-struct systick_t {
-    volatile unsigned CTRL;     // 0x00 Control and Status
-    volatile unsigned LOAD;     // 0x04 Reload value
-    volatile unsigned VAL;      // 0x08 Current value
-    volatile unsigned CALIB;    // 0x0C Calibration value
-};
 
 struct rcc_t {
     volatile unsigned CR;          // 0x00 - Clock Control Register
@@ -216,4 +207,4 @@ void init_spi1_with_clocks(void);
 
 void print_clock_frequencies(void);
 
-#endif /* CLOCK_H */
+#endif /* RCC_H */
