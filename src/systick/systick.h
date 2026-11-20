@@ -7,10 +7,10 @@
 #define SYSTICK ((struct systick_t *) SYSTICK_BASE)
 
 struct systick_t {
-    volatile unsigned CTRL;     // 0x00 Control and Status
-    volatile unsigned LOAD;     // 0x04 Reload value
-    volatile unsigned VAL;      // 0x08 Current value
-    volatile unsigned CALIB;    // 0x0C Calibration value
+    volatile uint32_t CTRL;     // 0x00 Control and Status
+    volatile uint32_t LOAD;     // 0x04 Reload value
+    volatile uint32_t VAL;      // 0x08 Current value
+    volatile uint32_t CALIB;    // 0x0C Calibration value
 };
 
 #define SYSTICK_CTRL_ENABLE     (1U << 0)

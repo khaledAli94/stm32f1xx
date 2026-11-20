@@ -1,6 +1,8 @@
 #ifndef SPI_H
 #define SPI_H
 
+#include <stdint.h>
+
 #define SPI1_BASE 0x40013000UL
 #define SPI2_BASE 0x40003800UL
 
@@ -9,7 +11,7 @@
 
 
 struct spi_t {
-    volatile unsigned CR1;     // 0x00 - Control Register 1
+    volatile uint32_t CR1;     // 0x00 - Control Register 1
                                // Bits:
                                // 0  = CPHA (Clock Phase)
                                // 1  = CPOL (Clock Polarity)
@@ -26,7 +28,7 @@ struct spi_t {
                                // 14 = BIDIOE (Bidirectional Output Enable)
                                // 15 = BIDIMODE (Bidirectional Data Mode Enable: 0=2-line, 1=1-line)
 
-    volatile unsigned CR2;     // 0x04 - Control Register 2
+    volatile uint32_t CR2;     // 0x04 - Control Register 2
                                // Bits:
                                // 0  = RXDMAEN (Rx Buffer DMA Enable)
                                // 1  = TXDMAEN (Tx Buffer DMA Enable)
@@ -36,7 +38,7 @@ struct spi_t {
                                // 6  = RXNEIE (RX Buffer Not Empty Interrupt Enable)
                                // 7  = TXEIE (Tx Buffer Empty Interrupt Enable)
 
-    volatile unsigned SR;      // 0x08 - Status Register
+    volatile uint32_t SR;      // 0x08 - Status Register
                                // Bits:
                                // 0  = RXNE (Receive Buffer Not Empty: 0=Empty, 1=Data ready)
                                // 1  = TXE (Transmit Buffer Empty: 0=Not empty, 1=Empty)
@@ -48,22 +50,22 @@ struct spi_t {
                                // 7  = BSY (Busy Flag: 0=SPI not busy, 1=SPI busy)
                                // 8  = FRE (Frame Format Error: 0=No error, 1=Error)
 
-    volatile unsigned DR;      // 0x0C - Data Register
+    volatile uint32_t DR;      // 0x0C - Data Register
                                // Bits:
                                // 0:15 = DR[15:0] (Data bits - actual width depends on DFF bit)
                                // Note: 8-bit mode uses bits [7:0], 16-bit mode uses [15:0]
 
-    volatile unsigned CRCPR;   // 0x10 - CRC Polynomial Register
+    volatile uint32_t CRCPR;   // 0x10 - CRC Polynomial Register
                                // Bits:
                                // 0:15 = CRCPOLY[15:0] (CRC Polynomial value)
                                // Default: 0x0007 (CRC-16 polynomial: x¹⁶ + x¹⁵ + x² + 1)
 
-    volatile unsigned RXCRCR;  // 0x14 - RX CRC Register
+    volatile uint32_t RXCRCR;  // 0x14 - RX CRC Register
                                // Bits:
                                // 0:15 = RXCRC[15:0] (Received CRC value)
                                // Note: Contains CRC of last received block when CRCEN=1
 
-    volatile unsigned TXCRCR;  // 0x18 - TX CRC Register
+    volatile uint32_t TXCRCR;  // 0x18 - TX CRC Register
                                // Bits:
                                // 0:15 = TXCRC[15:0] (Transmitted CRC value)
                                // Note: Contains CRC of last transmitted block when CRCEN=1
@@ -80,19 +82,19 @@ struct spi_t {
 #define SPI_BAUD_DIV256   7
 
 /* SPI Driver Functions */
-void spi_init_master(volatile struct spi_t *spi, unsigned baud_rate);
+void spi_init_master(volatile struct spi_t *spi, uint32_t baud_rate);
 void spi_init_slave(volatile struct spi_t *spi);
-void spi_set_mode(volatile struct spi_t *spi, int cpol, int cpha);
-void spi_set_data_size(volatile struct spi_t *spi, int is_16bit);
-unsigned char spi_transfer_byte(volatile struct spi_t *spi, unsigned char data);
-unsigned short spi_transfer_short(volatile struct spi_t *spi, unsigned short data);
-void spi_transmit_bytes(volatile struct spi_t *spi, unsigned char *data, int length);
-void spi_receive_bytes(volatile struct spi_t *spi, unsigned char *buffer, int length);
-int spi_is_busy(volatile struct spi_t *spi);
-int spi_tx_buffer_empty(volatile struct spi_t *spi);
-int spi_rx_buffer_ready(volatile struct spi_t *spi);
+void spi_set_mode(volatile struct spi_t *spi, int32_t cpol, int32_t cpha);
+void spi_set_data_size(volatile struct spi_t *spi, int32_t is_16bit);
+uint8_t spi_transfer_byte(volatile struct spi_t *spi, uint8_t data);
+uint16_t spi_transfer_short(volatile struct spi_t *spi, uint16_t data);
+void spi_transmit_bytes(volatile struct spi_t *spi, const uint8_t *data, uint32_t length);
+void spi_receive_bytes(volatile struct spi_t *spi, uint8_t *buffer, uint32_t length);
+int32_t spi_is_busy(volatile struct spi_t *spi);
+int32_t spi_tx_buffer_empty(volatile struct spi_t *spi);
+int32_t spi_rx_buffer_ready(volatile struct spi_t *spi);
 void spi_enable(volatile struct spi_t *spi);
 void spi_disable(volatile struct spi_t *spi);
-void spi_set_lsb_first(volatile struct spi_t *spi, int lsb_first);
+void spi_set_lsb_first(volatile struct spi_t *spi, int32_t lsb_first);
 
 #endif /* SPI_H */

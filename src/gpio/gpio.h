@@ -1,6 +1,8 @@
 #ifndef GPIO_H
 #define GPIO_H
 
+#include <stdint.h>
+
 #define GPIOA_BASE 0x40010800UL
 #define GPIOB_BASE 0x40010C00UL
 #define GPIOC_BASE 0x40011000UL
@@ -12,13 +14,13 @@
 #define GPIOD ((volatile struct gpio_t *) GPIOD_BASE)
 
 struct gpio_t{
-    volatile unsigned CRL;     // 0x00
-    volatile unsigned CRH;     // 0x04
-    volatile unsigned IDR;     // 0x08
-    volatile unsigned ODR;     // 0x0C
-    volatile unsigned BSRR;    // 0x10
-    volatile unsigned BRR;     // 0x14
-    volatile unsigned LCKR;    // 0x18
+    volatile uint32_t CRL;     // 0x00
+    volatile uint32_t CRH;     // 0x04
+    volatile uint32_t IDR;     // 0x08
+    volatile uint32_t ODR;     // 0x0C
+    volatile uint32_t BSRR;    // 0x10
+    volatile uint32_t BRR;     // 0x14
+    volatile uint32_t LCKR;    // 0x18
 };
 
 
@@ -91,8 +93,8 @@ void gpio_pin_mode(volatile struct gpio_t *gpio, enum gpio_pin pin, enum gpio_mo
 void gpio_pin_write(volatile struct gpio_t *gpio, enum gpio_pin pin, enum gpio_state state);
 void gpio_pin_toggle(volatile struct gpio_t *gpio, enum gpio_pin pin);
 enum gpio_state gpio_pin_read(volatile struct gpio_t *gpio, enum gpio_pin pin);
-void gpio_port_write(volatile struct gpio_t *gpio, unsigned short value);
-unsigned short gpio_port_read(volatile struct gpio_t *gpio);
+void gpio_port_write(volatile struct gpio_t *gpio, uint16_t value);
+uint16_t gpio_port_read(volatile struct gpio_t *gpio);
 void gpio_pin_set_high(volatile struct gpio_t *gpio, enum gpio_pin pin);
 void gpio_pin_set_low(volatile struct gpio_t *gpio, enum gpio_pin pin);
 void gpio_set_pull(volatile struct gpio_t *gpio, enum gpio_pin pin, enum gpio_pull pull);

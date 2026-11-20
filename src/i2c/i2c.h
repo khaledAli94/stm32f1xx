@@ -12,15 +12,15 @@
 #define I2C2 ((volatile struct i2c_t *) I2C2_BASE)
 
 struct i2c_t {
-    volatile unsigned CR1;     // 0x00 ctrl     
-    volatile unsigned CR2;     // 0x04
-    volatile unsigned OAR1;    // 0x08 own addr 
-    volatile unsigned OAR2;    // 0x0C 
-    volatile unsigned DR;      // 0x10 data
-    volatile unsigned SR1;     // 0x14 status 
-    volatile unsigned SR2;     // 0x18 
-    volatile unsigned CCR;     // 0x1C clock ctrl
-    volatile unsigned TRISE;   // 0x20 
+    volatile uint32_t CR1;     // 0x00 ctrl     
+    volatile uint32_t CR2;     // 0x04
+    volatile uint32_t OAR1;    // 0x08 own addr 
+    volatile uint32_t OAR2;    // 0x0C 
+    volatile uint32_t DR;      // 0x10 data
+    volatile uint32_t SR1;     // 0x14 status 
+    volatile uint32_t SR2;     // 0x18 
+    volatile uint32_t CCR;     // 0x1C clock ctrl
+    volatile uint32_t TRISE;   // 0x20 
 };
 
 

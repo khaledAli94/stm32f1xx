@@ -1,6 +1,8 @@
 #ifndef NESTED_VECTOR_H
 #define NESTED_VECTOR_H
 
+#include <stdint.h>
+
 #define NVIC_BASE 0xe000e100UL
 #define NVIC ((volatile struct nvic_t *) NVIC_BASE)
 
@@ -63,17 +65,17 @@ enum IRQn_t {
 };
 
 struct nvic_t {
-    volatile unsigned ISER[8];     // 0x000 Interrupt Set-Enable Registers
-    unsigned RESERVED0[24];
-    volatile unsigned ICER[8];     // 0x080 Interrupt Clear-Enable Registers
-    unsigned RESERVED1[24];
-    volatile unsigned ISPR[8];     // 0x100 Interrupt Set-Pending Registers
-    unsigned RESERVED2[24];
-    volatile unsigned ICPR[8];     // 0x180 Interrupt Clear-Pending Registers
-    unsigned RESERVED3[24];
-    volatile unsigned IABR[8];     // 0x200 Interrupt Active Bit Registers
-    unsigned RESERVED4[56];
-    volatile unsigned IPR[60];     // 0x300 Interrupt Priority Registers
+    volatile uint32_t ISER[8];     // 0x000 Interrupt Set-Enable Registers
+    uint32_t          RESERVED0[24];
+    volatile uint32_t ICER[8];     // 0x080 Interrupt Clear-Enable Registers
+    uint32_t          RESERVED1[24];
+    volatile uint32_t ISPR[8];     // 0x100 Interrupt Set-Pending Registers
+    uint32_t          RESERVED2[24];
+    volatile uint32_t ICPR[8];     // 0x180 Interrupt Clear-Pending Registers
+    uint32_t          RESERVED3[24];
+    volatile uint32_t IABR[8];     // 0x200 Interrupt Active Bit Registers
+    uint32_t          RESERVED4[56];
+    volatile uint32_t IPR[60];     // 0x300 Interrupt Priority Registers
 };
 
 
