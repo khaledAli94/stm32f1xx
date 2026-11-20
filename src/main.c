@@ -3,6 +3,7 @@
 #include <gpio.h>
 #include <spi.h>
 #include <i2c.h>
+#include <gt911.h>
 #include <nested-vector.h>
 #include <sys-ctrl-blk.h>
 #include <usb-core.h>
@@ -35,7 +36,7 @@ void crt0_init(void){
     while (byte_dst < (unsigned char *) &_ebss) { *byte_dst++ = 0; }
 }
 
-int main() {
+int main () {
 
     return 0;
 }

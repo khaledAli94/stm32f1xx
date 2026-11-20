@@ -2,6 +2,8 @@
 #include <clock.h>
 #include <gpio.h>
 #include <nested-vector.h>
+#include <external-intr.h>
+#include <gt911.h>
 
 
 void NMI_Handler(void){}
@@ -40,7 +42,13 @@ __attribute__((weak))
 void USB_LP_CAN1_RX0_IRQHandler(void){}
 void CAN1_RX1_IRQHandler(void){}
 void CAN1_SCE_IRQHandler(void){}
-void EXTI9_5_IRQHandler(void){}
+void EXTI9_5_IRQHandler(void)
+{
+    if (EXTI->PR & (1U << 5)) {
+        EXTI->PR = (1U << 5);
+        gt911_irq_flag = 1;
+    }
+}
 
 void TIM1_BRK_IRQHandler(void){}
 __attribute__((interrupt("IRQ")))
