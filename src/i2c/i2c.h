@@ -65,6 +65,9 @@ struct i2c_t {
 
 
 #define I2C_TIMEOUT_CYCLES 100000U
+#define FREQ_400KHZ 400000U
+#define FREQ_100KHZ 100000U
+
 
 /* Driver Status Codes */
 enum {
