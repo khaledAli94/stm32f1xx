@@ -107,3 +107,57 @@ int gt911_read_points(struct gt911_point_t *points, uint8_t *count)
     EXTI->IMR |= (1U << 5);
     return 0;
 }
+
+
+/* test benchmark */
+
+// int main()
+// {
+//     /* 1. Initialize system clocks (72 MHz PLL or default 8 MHz HSI) */
+//     rcc_sysclk_hse_72mhz();
+
+//     systick_init();
+//     tim2_init();
+//     __asm__ volatile ("cpsie i");
+    
+//     /* 2. Wait for GT911 internal power-on reset (~100 ms since RST is tied to 3.3V) */
+//     delay_ms(100);
+
+//     /* 3. Initialize I2C1 at 400 kHz Fast Mode (PB6 = SCL, PB7 = SDA) */
+//     i2c_init(I2C1, 400000U);
+
+//     /* 4. Probe GT911 at 0x5D, configure PB5 as floating input, clear status */
+//     if (gt911_init(I2C1) != 0) {
+//         while (1) {
+//             /* Error: GT911 did not respond at 0x5D (check pull-ups or if latched at 0x14) */
+//         }
+//     }
+
+//     struct gt911_point_t points[GT911_MAX_TOUCHES] = {0};
+//     uint8_t count = 0;
+
+
+//     while (1) {
+//         if (gt911_irq_flag) {
+//             gt911_irq_flag = 0;
+
+//             /* Reads 0x814E + coordinates and writes 0x00 to 0x814E so INT stops pulsing */
+//             if (gt911_read_points(points, &count) == 0 && count > 0) {
+//                 for (uint8_t i = 0; i < count; i++) {
+//                     uint8_t  id   = points[i].id;
+//                     uint16_t x    = points[i].x;
+//                     uint16_t y    = points[i].y;
+//                     uint16_t size = points[i].size;
+
+//                     /* Process touch coordinates (x, y) here */
+//                     (void)id; (void)x; (void)y; (void)size;
+//                 }
+//             }
+//         } else {
+//             /* Sleep CPU until EXTI5 (touch) or SysTick (1 ms) fires */
+//             __asm__ volatile ("wfi");
+//         }
+//     }
+
+//     return 0;
+// }

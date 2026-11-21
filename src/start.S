@@ -11,8 +11,11 @@
 .type Reset_Handler, %function
 Reset_Handler:
   cpsid i
+  bl rcc_sysclk_hse_72mhz
+  bl systick_init
+  bl tim2_init
+  cpsie i
   bl crt0_init
-  @ bl sys_tick_init
   bl main
 
   b .
