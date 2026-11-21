@@ -286,85 +286,85 @@ void rcc_sysclk_default(void) {
 
 
 /* Clock Frequency Getter Functions */
-unsigned rcc_get_sysclk_frequency(void) {
-    unsigned sws = (RCC->CFGR >> 2) & 0x3;  /* Read SWS[1:0] bits (bits 3:2) */
+uint32_t rcc_get_sysclk_frequency(void) {
+    uint32_t sws = (RCC->CFGR >> 2) & 0x3U;  /* Read SWS[1:0] bits (bits 3:2) */
     
     switch (sws) {
         case 0:  /* HSI */
-            return 8000000;  /* 8MHz */
+            return 8000000U;  /* 8MHz */
         case 1:  /* HSE */
-            return 8000000;  /* 8MHz (typical external crystal) */
+            return 8000000U;  /* 8MHz (typical external crystal) */
         case 2:  /* PLL */
             /* Calculate PLL frequency */
             {
-                unsigned pllsrc = (RCC->CFGR >> 16) & 0x1;  /* PLLSRC bit (bit 16) */
-                unsigned pllmul = (RCC->CFGR >> 18) & 0xF;  /* PLLMUL[3:0] bits (bits 21:18) */
-                unsigned pll_input;
+                uint32_t pllsrc = (RCC->CFGR >> 16) & 0x1U;  /* PLLSRC bit (bit 16) */
+                uint32_t pllmul = (RCC->CFGR >> 18) & 0xFU;  /* PLLMUL[3:0] bits (bits 21:18) */
+                uint32_t pll_input;
                 
                 if (pllsrc) {
-                    pll_input = 8000000;  /* HSE = 8MHz */
+                    pll_input = 8000000U;  /* HSE = 8MHz */
                 } else {
-                    pll_input = 4000000;  /* HSI/2 = 4MHz */
+                    pll_input = 4000000U;  /* HSI/2 = 4MHz */
                 }
                 
                 /* PLL multiplier: actual multiplier = pllmul + 2 */
-                unsigned multiplier = pllmul + 2;
-                if (pllmul == 0xF) {
-                    multiplier = 16;  /* Special case: 0xF = 16 */
+                uint32_t multiplier = pllmul + 2U;
+                if (pllmul == 0xFU) {
+                    multiplier = 16U;  /* Special case: 0xF = 16 */
                 }
                 
                 return pll_input * multiplier;
             }
         default:
-            return 8000000;  /* Default to 8MHz */
+            return 8000000U;  /* Default to 8MHz */
     }
 }
 
-unsigned rcc_get_hclk_frequency(void) {
-    unsigned sysclk = rcc_get_sysclk_frequency();
-    unsigned hpre = (RCC->CFGR >> 4) & 0xF;  /* HPRE[3:0] bits (bits 7:4) */
+uint32_t rcc_get_hclk_frequency(void) {
+    uint32_t sysclk = rcc_get_sysclk_frequency();
+    uint32_t hpre = (RCC->CFGR >> 4) & 0xFU;  /* HPRE[3:0] bits (bits 7:4) */
     
     switch (hpre) {
         case 0: case 1: case 2: case 3: case 4: case 5: case 6: case 7:
             return sysclk;  /* Not divided */
-        case 8: return sysclk / 2;
-        case 9: return sysclk / 4;
-        case 10: return sysclk / 8;
-        case 11: return sysclk / 16;
-        case 12: return sysclk / 64;
-        case 13: return sysclk / 128;
-        case 14: return sysclk / 256;
-        case 15: return sysclk / 512;
+        case 8: return sysclk / 2U;
+        case 9: return sysclk / 4U;
+        case 10: return sysclk / 8U;
+        case 11: return sysclk / 16U;
+        case 12: return sysclk / 64U;
+        case 13: return sysclk / 128U;
+        case 14: return sysclk / 256U;
+        case 15: return sysclk / 512U;
         default: return sysclk;
     }
 }
 
-unsigned rcc_get_pclk1_frequency(void) {
-    unsigned hclk = rcc_get_hclk_frequency();
-    unsigned ppre1 = (RCC->CFGR >> 8) & 0x7;  /* PPRE1[2:0] bits (bits 10:8) */
+uint32_t rcc_get_pclk1_frequency(void) {
+    uint32_t hclk = rcc_get_hclk_frequency();
+    uint32_t ppre1 = (RCC->CFGR >> 8) & 0x7U;  /* PPRE1[2:0] bits (bits 10:8) */
     
     switch (ppre1) {
         case 0: case 1: case 2: case 3:
             return hclk;  /* Not divided */
-        case 4: return hclk / 2;
-        case 5: return hclk / 4;
-        case 6: return hclk / 8;
-        case 7: return hclk / 16;
+        case 4: return hclk / 2U;
+        case 5: return hclk / 4U;
+        case 6: return hclk / 8U;
+        case 7: return hclk / 16U;
         default: return hclk;
     }
 }
 
-unsigned rcc_get_pclk2_frequency(void) {
-    unsigned hclk = rcc_get_hclk_frequency();
-    unsigned ppre2 = (RCC->CFGR >> 11) & 0x7;  /* PPRE2[2:0] bits (bits 13:11) */
+uint32_t rcc_get_pclk2_frequency(void) {
+    uint32_t hclk = rcc_get_hclk_frequency();
+    uint32_t ppre2 = (RCC->CFGR >> 11) & 0x7U;  /* PPRE2[2:0] bits (bits 13:11) */
     
     switch (ppre2) {
         case 0: case 1: case 2: case 3:
             return hclk;  /* Not divided */
-        case 4: return hclk / 2;
-        case 5: return hclk / 4;
-        case 6: return hclk / 8;
-        case 7: return hclk / 16;
+        case 4: return hclk / 2U;
+        case 5: return hclk / 4U;
+        case 6: return hclk / 8U;
+        case 7: return hclk / 16U;
         default: return hclk;
     }
 }
@@ -409,8 +409,8 @@ void init_spi1_with_clocks(void) {
 /* current clock frequencies */
 void print_clock_frequencies(void) {
     /* sysclk, hclk, pclk1, pclk2 contain frequencies in Hz */
-    unsigned sysclk = rcc_get_sysclk_frequency();
-    unsigned hclk = rcc_get_hclk_frequency();
-    unsigned pclk1 = rcc_get_pclk1_frequency();
-    unsigned pclk2 = rcc_get_pclk2_frequency();
+    uint32_t sysclk = rcc_get_sysclk_frequency();
+    uint32_t hclk = rcc_get_hclk_frequency();
+    uint32_t pclk1 = rcc_get_pclk1_frequency();
+    uint32_t pclk2 = rcc_get_pclk2_frequency();
 }

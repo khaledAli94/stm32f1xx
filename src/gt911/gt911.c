@@ -39,65 +39,71 @@ int gt911_init(volatile struct i2c_t *i2c)
     rcc_gpiob_enable();
     rcc_afio_enable();
 
-    /* 1. Drive both RST (PB8) and INT (PB5) LOW to select address 0x5D */
+    /* 1. Reset sequence: PB8 (RST) + PB5 (INT) LOW -> RST HIGH -> INT floating */
     gpio_pin_mode(GPIOB, PIN_8, GPIO_OUTPUT_PP_2MHZ);
     gpio_pin_mode(GPIOB, PIN_5, GPIO_OUTPUT_PP_2MHZ);
     GPIOB->BRR = (1U << 8) | (1U << 5);
     delay_ms(15);
 
-    /* 2. Release RST (PB8) HIGH while INT (PB5) is still LOW */
     GPIOB->BSRR = (1U << 8);
     delay_ms(6);
 
-    /* 3. Switch INT (PB5) to floating input BEFORE GT911 drives it */
     gpio_pin_mode(GPIOB, PIN_5, GPIO_INPUT_FLOATING);
     delay_ms(60);
 
-    /* 4. Route PB5 to EXTI5 and configure interrupt on rising edge */
-    AFIO->EXTICR2 &= ~(0xFU << 4);
-    AFIO->EXTICR2 |=  (0x1U << 4);
-
-    EXTI->RTSR |=  (1U << 5);
-    EXTI->FTSR &= ~(1U << 5);
-    EXTI->PR    =  (1U << 5);
-    EXTI->IMR  |=  (1U << 5);
-
-    NVIC_EnableIRQ(EXTI9_5_IRQn);
-
-
-    /* 5. Verify Product ID ("911") and clear status register */
-    uint8_t id[4] = {0};
+    /* 2. Verify Product ID ("911"), read INT polarity (0x804D), clear status */
+    uint8_t id[4] = {0}, mod_sw1 = 0, zero = 0;
     if (gt911_read_reg(i2c, GT911_REG_PRODUCT_ID, id, 4U) != I2C_OK) return -1;
     if (id[0] != '9' || id[1] != '1' || id[2] != '1') return -1;
+    if (gt911_read_reg(i2c, 0x804DU, &mod_sw1, 1U) != I2C_OK) return -1;
+    if (gt911_write_reg(i2c, GT911_REG_POINT_STATUS, &zero, 1U) != I2C_OK) return -1;
 
-    uint8_t zero = 0;
-    return gt911_write_reg(i2c, GT911_REG_POINT_STATUS, &zero, 1U);
+    /* 3. Route PB5 to EXTI5 matching panel INT edge (0 = rising, 1 = falling) */
+    AFIO->EXTICR2 = (AFIO->EXTICR2 & ~(0xFU << 4)) | (0x1U << 4);
+    if ((mod_sw1 & 0x03U) == 1U) {
+        EXTI->FTSR |=  (1U << 5);
+        EXTI->RTSR &= ~(1U << 5);
+    } else {
+        EXTI->RTSR |=  (1U << 5);
+        EXTI->FTSR &= ~(1U << 5);
+    }
+
+    EXTI->PR   = (1U << 5);
+    EXTI->IMR |= (1U << 5);
+    gt911_irq_flag = 0;
+    NVIC_EnableIRQ(EXTI9_5_IRQn);
+
+    return 0;
 }
 
 int gt911_read_points(struct gt911_point_t *points, uint8_t *count)
 {
+    EXTI->IMR &= ~(1U << 5); // Mute PB6 (SCL) crosstalk during I2C transfer
+
     uint8_t status = 0, zero = 0;
     *count = 0;
 
-    if (gt911_read_reg(I2C1, GT911_REG_POINT_STATUS, &status, 1U) != I2C_OK) return -1;
-    if (!(status & 0x80U)) return 0;
+    if (gt911_read_reg(I2C1, GT911_REG_POINT_STATUS, &status, 1U) == I2C_OK && (status & 0x80U)) {
+        uint8_t n = status & 0x0FU;
+        if (n > GT911_MAX_TOUCHES) n = GT911_MAX_TOUCHES;
 
-    uint8_t n = status & 0x0FU;
-    if (n > GT911_MAX_TOUCHES) n = GT911_MAX_TOUCHES;
-
-    if (n > 0U) {
-        uint8_t raw[GT911_MAX_TOUCHES * 8U];
-        if (gt911_read_reg(I2C1, GT911_REG_POINT_DATA, raw, (uint16_t)(n * 8U)) != I2C_OK) return -1;
-
-        for (uint8_t i = 0; i < n; i++) {
-            uint8_t *p = &raw[i * 8U];
-            points[i].id   = p[0];
-            points[i].x    = (uint16_t)p[1] | ((uint16_t)p[2] << 8);
-            points[i].y    = (uint16_t)p[3] | ((uint16_t)p[4] << 8);
-            points[i].size = (uint16_t)p[5] | ((uint16_t)p[6] << 8);
+        if (n > 0U) {
+            uint8_t raw[GT911_MAX_TOUCHES * 8U];
+            if (gt911_read_reg(I2C1, GT911_REG_POINT_DATA, raw, (uint16_t)(n * 8U)) == I2C_OK) {
+                for (uint8_t i = 0; i < n; i++) {
+                    uint8_t *p = &raw[i * 8U];
+                    points[i].id   = p[0];
+                    points[i].x    = (uint16_t)p[1] | ((uint16_t)p[2] << 8);
+                    points[i].y    = (uint16_t)p[3] | ((uint16_t)p[4] << 8);
+                    points[i].size = (uint16_t)p[5] | ((uint16_t)p[6] << 8);
+                }
+                *count = n;
+            }
         }
+        gt911_write_reg(I2C1, GT911_REG_POINT_STATUS, &zero, 1U);
     }
 
-    *count = n;
-    return gt911_write_reg(I2C1, GT911_REG_POINT_STATUS, &zero, 1U);
+    EXTI->PR   = (1U << 5);
+    EXTI->IMR |= (1U << 5);
+    return 0;
 }

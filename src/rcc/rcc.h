@@ -1,12 +1,13 @@
 #ifndef RCC_H
 #define RCC_H
 
+#include <stdint.h>
 
 #define RCC_BASE 0x40021000UL
 #define RCC ((struct rcc_t *) RCC_BASE)
 
 struct rcc_t {
-    volatile unsigned CR;          // 0x00 - Clock Control Register
+    volatile uint32_t CR;          // 0x00 - Clock Control Register
                                    // Controls HSI, HSE, PLL on/off and ready flags.
                                    // Bits:
                                    // 0  = HSION (enable internal 8 MHz RC)
@@ -16,7 +17,7 @@ struct rcc_t {
                                    // 24 = PLLON (enable PLL)
                                    // 25 = PLLRDY (PLL ready)
 
-    volatile unsigned CFGR;        // 0x04 - Clock Configuration Register
+    volatile uint32_t CFGR;        // 0x04 - Clock Configuration Register
                                    // Selects system clock source and prescalers.
                                    // Bits:
                                    // 1:0   = SW (SYSCLK source: HSI/HSE/PLL)
@@ -27,14 +28,14 @@ struct rcc_t {
                                    // 16    = PLLSRC (PLL source: HSI/2 or HSE)
                                    // 21:18 = PLLMUL (PLL multiplier)
 
-    volatile unsigned CIR;         // 0x08 - Clock Interrupt Register
+    volatile uint32_t CIR;         // 0x08 - Clock Interrupt Register
                                    // Enables/disables clock interrupts and clears flags.
                                    // Bits:
                                    // 0–7   = interrupt flags (HSI, HSE, PLL ready)
                                    // 8–15  = interrupt enables
                                    // 16–23 = interrupt clear bits
 
-    volatile unsigned APB2RSTR;    // 0x0C - APB2 Peripheral Reset Register
+    volatile uint32_t APB2RSTR;    // 0x0C - APB2 Peripheral Reset Register
                                    // Resets peripherals on APB2 bus.
                                    // Example bits:
                                    // 2 = AFIO reset
@@ -44,7 +45,7 @@ struct rcc_t {
                                    // 11 = ADC1 reset
                                    // 14 = USART1 reset
 
-    volatile unsigned APB1RSTR;    // 0x10 - APB1 Peripheral Reset Register
+    volatile uint32_t APB1RSTR;    // 0x10 - APB1 Peripheral Reset Register
                                    // Resets peripherals on APB1 bus.
                                    // Example bits:
                                    // 0  = TIM2 reset
@@ -54,7 +55,7 @@ struct rcc_t {
                                    // 23 = I2C1 reset
                                    // 25 = I2C2 reset
 
-    volatile unsigned AHBENR;      // 0x14 - AHB Peripheral Clock Enable Register
+    volatile uint32_t AHBENR;      // 0x14 - AHB Peripheral Clock Enable Register
                                    // Enables clocks for AHB peripherals.
                                    // Bits:
                                    // 0 = DMA1 clock enable
@@ -63,7 +64,7 @@ struct rcc_t {
                                    // 4 = FLITF clock
                                    // 8 = CRC clock
 
-    volatile unsigned APB2ENR;     // 0x18 - APB2 Peripheral Clock Enable Register
+    volatile uint32_t APB2ENR;     // 0x18 - APB2 Peripheral Clock Enable Register
                                    // Enables clocks for APB2 peripherals.
                                    // Bits:
                                    // 0 = AFIO clock enable
@@ -73,7 +74,7 @@ struct rcc_t {
                                    // 9 = ADC1 clock enable
                                    // 14 = USART1 clock enable
 
-    volatile unsigned APB1ENR;     // 0x1C - APB1 Peripheral Clock Enable Register
+    volatile uint32_t APB1ENR;     // 0x1C - APB1 Peripheral Clock Enable Register
                                    // Enables clocks for APB1 peripherals.
                                    // Bits:
                                    // 0  = TIM2 clock enable
@@ -84,7 +85,7 @@ struct rcc_t {
                                    // 23 = I2C1 clock enable
                                    // 25 = I2C2 clock enable
 
-    volatile unsigned BDCR;        // 0x20 - Backup Domain Control Register
+    volatile uint32_t BDCR;        // 0x20 - Backup Domain Control Register
                                    // Controls LSE oscillator and RTC.
                                    // Bits:
                                    // 0  = LSEON (enable 32.768 kHz crystal)
@@ -92,7 +93,7 @@ struct rcc_t {
                                    // 8  = RTCSEL (RTC clock source)
                                    // 15 = BDRST (backup domain reset)
 
-    volatile unsigned CSR;         // 0x24 - Control/Status Register
+    volatile uint32_t CSR;         // 0x24 - Control/Status Register
                                    // Controls LSI and reset flags.
                                    // Bits:
                                    // 0  = LSION (enable internal 40 kHz RC)
@@ -199,9 +200,10 @@ void rcc_spi1_reset(void);
 void rcc_sysclk_hsi_64mhz(void);
 void rcc_sysclk_hse_72mhz(void);
 void rcc_sysclk_default(void);
-unsigned rcc_get_sysclk_frequency(void);
-unsigned rcc_get_hclk_frequency(void);
-unsigned rcc_get_pclk1_frequency(void);
+uint32_t rcc_get_sysclk_frequency(void);
+uint32_t rcc_get_hclk_frequency(void);
+uint32_t rcc_get_pclk1_frequency(void);
+uint32_t rcc_get_pclk2_frequency(void);
 void rcc_deinit(void);
 void init_spi1_with_clocks(void);
 

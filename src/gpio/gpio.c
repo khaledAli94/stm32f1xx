@@ -12,9 +12,9 @@ volatile struct gpio_t *gpio_get_port(enum gpio_port port) {
 }
 
 void gpio_pin_mode(volatile struct gpio_t *gpio, enum gpio_pin pin, enum gpio_mode mode) {
-    unsigned config_reg;
-    unsigned pin_pos;
-    unsigned clear_mask;
+    uint32_t config_reg;
+    uint32_t pin_pos;
+    uint32_t clear_mask;
     
     /* Determine which configuration register to use - access gpio->CRL (offset 0x00) or gpio->CRH (offset 0x04) */
     if (pin < 8) {
@@ -52,32 +52,32 @@ void gpio_pin_write(volatile struct gpio_t *gpio, enum gpio_pin pin, enum gpio_s
 
 void gpio_pin_toggle(volatile struct gpio_t *gpio, enum gpio_pin pin) {
     /* Read current state from ODR - access gpio->ODR (offset 0x0C) */
-    unsigned current_state = (gpio->ODR >> pin) & 0x1;
+    uint32_t current_state = (gpio->ODR >> pin) & 0x1U;
     
     if (current_state) {
         /* If high, set it low using BRR - access gpio->BRR (offset 0x14) */
-        gpio->BRR = (1 << pin);  /* Reset pin */
+        gpio->BRR = (1U << pin);  /* Reset pin */
     } else {
         /* If low, set it high using BSRR - access gpio->BSRR (offset 0x10) */
-        gpio->BSRR = (1 << pin);  /* Set pin */
+        gpio->BSRR = (1U << pin);  /* Set pin */
     }
 }
 
 enum gpio_state gpio_pin_read(volatile struct gpio_t *gpio, enum gpio_pin pin) {
     /* Read pin state from IDR - access gpio->IDR (offset 0x08) */
-    unsigned pin_state = (gpio->IDR >> pin) & 0x1;
+    uint32_t pin_state = (gpio->IDR >> pin) & 0x1U;
     
     return (pin_state) ? GPIO_HIGH : GPIO_LOW;
 }
 
-void gpio_port_write(volatile struct gpio_t *gpio, unsigned short value) {
+void gpio_port_write(volatile struct gpio_t *gpio, uint16_t value) {
     /* Write to all pins at once - access gpio->ODR (offset 0x0C) */
-    gpio->ODR = value & 0xFFFF;  /* Only 16 pins, mask to 16 bits */
+    gpio->ODR = value & 0xFFFFU;  /* Only 16 pins, mask to 16 bits */
 }
 
-unsigned short gpio_port_read(volatile struct gpio_t *gpio) {
+uint16_t gpio_port_read(volatile struct gpio_t *gpio) {
     /* Read all pins at once - access gpio->IDR (offset 0x08) */
-    return (unsigned short)(gpio->IDR & 0xFFFF);  /* Only 16 pins */
+    return (uint16_t)(gpio->IDR & 0xFFFFU);  /* Only 16 pins */
 }
 
 void gpio_pin_set_high(volatile struct gpio_t *gpio, enum gpio_pin pin) {

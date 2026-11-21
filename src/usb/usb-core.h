@@ -63,6 +63,7 @@ enum {
 
 void usb_clock_init(void);
 void usb_init(void);
+int  cdc_send_data(const uint8_t *data, uint32_t len);
 
 
 #endif /* USB_CORE_H */

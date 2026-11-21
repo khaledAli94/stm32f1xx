@@ -9,93 +9,93 @@
 */
 
 
-static unsigned char    usb_addr;
+static uint8_t    usb_addr;
 static enum usb_ctrl_state_t  ctrl_pending;
-static unsigned char    ctrl_buf[128];
-static unsigned         ctrl_len;
-static unsigned         ctrl_pos;
+static uint8_t    ctrl_buf[128];
+static uint32_t   ctrl_len;
+static uint32_t   ctrl_pos;
 
-// static unsigned char  bulk_tx_busy;
-unsigned char  bulk_tx_busy;
-static unsigned char  bulk_tx_buf[64];
-static unsigned       bulk_tx_len;
+// static uint8_t  bulk_tx_busy;
+uint8_t  bulk_tx_busy;
+static uint8_t  bulk_tx_buf[64];
+static uint32_t bulk_tx_len;
 
 
 void usb_clock_init(void) {
     /* Flash: 2 wait states + prefetch (needed for 72 MHz on F103) */
-    flash_set_latency(72000000);
+    flash_set_latency(72000000U);
 
     RCC->CR |= (1U << 16);                       /* HSEON  */
     while (!(RCC->CR & (1U << 17))) { }           /* HSERDY */
 
-    RCC->CFGR = ((unsigned)CLOCK_PLL   << 0)
-              | ((unsigned)AHB_DIV_1   << 4)
-              | ((unsigned)APB_DIV_2   << 8)
-              | ((unsigned)APB_DIV_1   << 11)
+    RCC->CFGR = ((uint32_t)CLOCK_PLL   << 0)
+              | ((uint32_t)AHB_DIV_1   << 4)
+              | ((uint32_t)APB_DIV_2   << 8)
+              | ((uint32_t)APB_DIV_1   << 11)
               | (1U << 16)                       /* PLLSRC = HSE */
-              | ((unsigned)PLL_MUL_9   << 18)
-              | ((unsigned)USB_DIV_1_5 << 22);
+              | ((uint32_t)PLL_MUL_9   << 18)
+              | ((uint32_t)USB_DIV_1_5 << 22);
 
     RCC->CR |= (1U << 24);                       /* PLLON  */
     while (!(RCC->CR & (1U << 25))) { }           /* PLLRDY */
 
     RCC->CFGR = (RCC->CFGR & ~0x3U) | CLOCK_PLL; /* switch SYSCLK */
-    while (((RCC->CFGR >> 2) & 0x3U) != CLOCK_PLL) { }
+    while (((RCC->CFGR >> 2) & 0x3U) != (uint32_t)CLOCK_PLL) { }
 }
 
 /* ---------- PMA helpers (16-bit only, 2:1 hole) ---------- */
-static void pma_write16(unsigned b, const unsigned char *s, unsigned n) {
-    unsigned i;
+static void pma_write16(uint32_t b, const uint8_t *s, uint32_t n) {
+    uint32_t i;
     for (i = 0; i < n; i += 2) {
-        unsigned short w = s[i];
-        if (i + 1 < n) w |= (unsigned short)s[i + 1] << 8;
+        uint16_t w = s[i];
+        if (i + 1 < n) w |= (uint16_t)s[i + 1] << 8;
         PMA_BYTE(b + i) = w;
     }
 }
-static void pma_read16(unsigned b, unsigned char *d, unsigned n) {
-    unsigned i;
+static void pma_read16(uint32_t b, uint8_t *d, uint32_t n) {
+    uint32_t i;
     for (i = 0; i < n; i += 2) {
-        unsigned short w = PMA_BYTE(b + i);
-        d[i] = (unsigned char)(w & 0xFF);
-        if (i + 1 < n) d[i + 1] = (unsigned char)(w >> 8);
+        uint16_t w = PMA_BYTE(b + i);
+        d[i] = (uint8_t)(w & 0xFF);
+        if (i + 1 < n) d[i + 1] = (uint8_t)(w >> 8);
     }
 }
 
 /* ---------- EPnR and packet transfer events handlers --------- */
-static inline void ep_set(unsigned ep, unsigned mask, unsigned data)
+static inline void ep_set(uint32_t ep, uint32_t mask, uint32_t data)
 {
-    unsigned old = USB->EPR[ep];
-    unsigned rc_w0 = EP_CTR_RX | EP_CTR_TX;
-    unsigned toggle = EP_DTOG_RX | EP_STAT_RX_MASK | EP_DTOG_TX | EP_STAT_TX_MASK;
-    unsigned rw = EP_TYPE_MASK | EP_KIND | EP_ADDR_MASK;
+    uint32_t old = USB->EPR[ep];
+    uint32_t rc_w0 = EP_CTR_RX | EP_CTR_TX;
+    uint32_t toggle = EP_DTOG_RX | EP_STAT_RX_MASK | EP_DTOG_TX | EP_STAT_TX_MASK;
+    uint32_t rw = EP_TYPE_MASK | EP_KIND | EP_ADDR_MASK;
 
-    unsigned wr0 = rc_w0 & (~mask | data);
-    unsigned wr1 = (mask & toggle) & (old ^ data);
-    unsigned wr2 = rw & ((old & ~mask) | data);
+    uint32_t wr0 = rc_w0 & (~mask | data);
+    uint32_t wr1 = (mask & toggle) & (old ^ data);
+    uint32_t wr2 = rw & ((old & ~mask) | data);
 
-    USB->EPR[ep] = (unsigned short)(wr0 | wr1 | wr2);
+    USB->EPR[ep] = (uint16_t)(wr0 | wr1 | wr2);
 }
 
-static void ep_set_tx(unsigned ep, unsigned stat)
+static void ep_set_tx(uint32_t ep, uint32_t stat)
 {
     ep_set(ep, EP_STAT_TX_MASK, EP_TX_STAT(stat));
 }
-static void ep_set_rx(unsigned ep, unsigned stat)
+static void ep_set_rx(uint32_t ep, uint32_t stat)
 {
     ep_set(ep, EP_STAT_RX_MASK, EP_RX_STAT(stat));
 }
-static void ep_clear_ctr_rx(unsigned ep)
+static void ep_clear_ctr_rx(uint32_t ep)
 {
     ep_set(ep, EP_CTR_RX, 0);
 }
-static void ep_clear_ctr_tx(unsigned ep)
+static void ep_clear_ctr_tx(uint32_t ep)
 {
     ep_set(ep, EP_CTR_TX, 0);
 }
 
 /* ---------- init ---------- */
 void usb_init(void) {
-    unsigned d;
+    uint32_t d;
 
     RCC->APB2ENR |= (1U << 2);                   /* GPIOA-EN */
     RCC->APB1ENR |= (1U << 23);                  /* USB-EN  */
@@ -103,10 +103,10 @@ void usb_init(void) {
     /* PA11 / PA12 as input floating */
     GPIOA->CRH = (GPIOA->CRH & ~0x000FF000U) | 0x00044000U;
 
-    for (d = 0x40000; d; --d) { }                /* settle */
+    for (d = 0x40000U; d; --d) { }                /* settle */
 
     USB->CNTR = CNTR_FRES;
-    for (d = 0x40000; d; --d) { }
+    for (d = 0x40000U; d; --d) { }
     USB->CNTR = 0;
     USB->ISTR = 0;
     USB->BTABLE = 0;                             /* BTABLE at PMA byte 0 */
@@ -122,42 +122,42 @@ void usb_init(void) {
 
 /* ---------- control-transfer helpers ---------- */
 static void ep0_send_chunk(void) {
-    unsigned n = ctrl_len - ctrl_pos;
+    uint32_t n = ctrl_len - ctrl_pos;
     if (n > 64) n = 64;
     pma_write16(PMA_EP0_TX, ctrl_buf + ctrl_pos, n);
-    USB_BD_AT(0)->COUNT_TX = (unsigned short)n;
+    USB_BD_AT(0)->COUNT_TX = (uint16_t)n;
     ctrl_pos += n;
     ctrl_pending = CTRL_DATA_IN;
     ep_set_tx(0, EP_VALID);
 }
 
 static void ep0_setup(void) {
-    unsigned char s[8];
-    unsigned bmReq, bReq, wVal, wLen;
+    uint8_t s[8];
+    uint32_t bmReq, bReq, wVal, wLen;
 
     pma_read16(PMA_EP0_RX, s, 8);
     ep_clear_ctr_rx(0);
     bmReq = s[0]; bReq = s[1];
-    wVal  = s[2] | ((unsigned)s[3] << 8);
-    wLen  = s[6] | ((unsigned)s[7] << 8);
+    wVal  = s[2] | ((uint32_t)s[3] << 8);
+    wLen  = s[6] | ((uint32_t)s[7] << 8);
 
     ctrl_len = 0; ctrl_pos = 0; ctrl_pending = CTRL_IDLE;
 
     if ((bmReq & 0x60U) == USB_REQ_STANDARD) {
         if (bReq == REQ_GET_DESCRIPTOR) {
-            unsigned type = wVal >> 8;
-            const unsigned char *src = 0; unsigned n = 0;
+            uint32_t type = wVal >> 8;
+            const uint8_t *src = 0; uint32_t n = 0;
             if      (type == USB_DESC_DEVICE) { src = devd; n = sizeof(devd); }
             else if (type == USB_DESC_CONFIGURATION) { src = cfgd; n = sizeof(cfgd); }
             else if (type == USB_DESC_STRING && (wVal & 0xFFU) == 0) { src = str0; n = sizeof(str0);}
             if (!src) { ep_set_tx(0, EP_STALL); ep_set_rx(0, EP_STALL); return; }
             if (n > sizeof(ctrl_buf)) n = sizeof(ctrl_buf);
             if (n > wLen) n = wLen;
-            { unsigned i; for (i = 0; i < n; i++) ctrl_buf[i] = src[i]; }
+            { uint32_t i; for (i = 0; i < n; i++) ctrl_buf[i] = src[i]; }
             ctrl_len = n;
             ep0_send_chunk();
         } else if (bReq == REQ_SET_ADDRESS) {
-            usb_addr = (unsigned char)(wVal & 0x7FU);
+            usb_addr = (uint8_t)(wVal & 0x7FU);
             USB_BD_AT(0)->COUNT_TX = 0;
             ctrl_pending = CTRL_SET_ADDRESS;
             ep_set_tx(0, EP_VALID);
@@ -198,7 +198,7 @@ static void ep0_setup(void) {
             ctrl_pending = CTRL_DATA_OUT;
             ep_set_rx(0, EP_VALID);
         } else if (bReq == CDC_GET_LINE_CODING) {
-            unsigned i; for (i = 0; i < 7; i++) ctrl_buf[i] = lc[i];
+            uint32_t i; for (i = 0; i < 7; i++) ctrl_buf[i] = lc[i];
             ctrl_len = 7; ep0_send_chunk();
         } else if (bReq == CDC_SET_CONTROL_LINE_STATE) {
             USB_BD_AT(0)->COUNT_TX = 0;
@@ -229,13 +229,13 @@ static void ep0_in(void) {
 }
 
 static void ep0_out(void) {
-    unsigned cnt = USB_BD_AT(0)->COUNT_RX & COUNT_NBYTES_MASK;
+    uint32_t cnt = USB_BD_AT(0)->COUNT_RX & COUNT_NBYTES_MASK;
     ep_clear_ctr_rx(0);
     if (ctrl_pending == CTRL_DATA_OUT) {
         pma_read16(PMA_EP0_RX, ctrl_buf + ctrl_pos, cnt);
         ctrl_pos += cnt;
         if (ctrl_pos >= ctrl_len) {
-            unsigned i; for (i = 0; i < 7; i++) lc[i] = ctrl_buf[i];
+            uint32_t i; for (i = 0; i < 7; i++) lc[i] = ctrl_buf[i];
             USB_BD_AT(0)->COUNT_TX = 0;
             ctrl_pending = CTRL_STATUS_IN;
             ep_set_tx(0, EP_VALID);
@@ -251,20 +251,20 @@ static void ep0_out(void) {
 }
 
 /* ---------- Bulk IN driver API (fixed flow control) ---------- */
-int cdc_send_data(const unsigned char *data, unsigned len) {
+int cdc_send_data(const uint8_t *data, uint32_t len) {
     if (bulk_tx_busy || len == 0 || len > 64) return -1;
-    { unsigned i; for (i = 0; i < len; i++) bulk_tx_buf[i] = data[i]; }
+    { uint32_t i; for (i = 0; i < len; i++) bulk_tx_buf[i] = data[i]; }
     bulk_tx_len  = len;
     bulk_tx_busy = 1;
     pma_write16(PMA_EP1_TX, bulk_tx_buf, len);
-    USB_BD_AT(1)->COUNT_TX = (unsigned short)len;
+    USB_BD_AT(1)->COUNT_TX = (uint16_t)len;
     ep_set_tx(1, EP_VALID);
     return 0;
 }
 
 static void ep1_out(void) {
-    unsigned char buf[64];
-    unsigned cnt = USB_BD_AT(1)->COUNT_RX & COUNT_NBYTES_MASK;
+    uint8_t buf[64];
+    uint32_t cnt = USB_BD_AT(1)->COUNT_RX & COUNT_NBYTES_MASK;
     ep_clear_ctr_rx(1);
     pma_read16(PMA_EP1_RX, buf, cnt);
 
@@ -284,7 +284,7 @@ static void ep1_out(void) {
 
 /* ---------- ISR ---------- */
 void USB_LP_CAN1_RX0_IRQHandler(void) {
-    unsigned istr = USB->ISTR;
+    uint32_t istr = USB->ISTR;
 
     if (istr & ISTR_RESET) {
         USB->ISTR = ~ISTR_RESET;
@@ -311,8 +311,8 @@ void USB_LP_CAN1_RX0_IRQHandler(void) {
         return;
     }
     if (istr & ISTR_CTR) {
-        unsigned ep = (istr & ISTR_EP_ID);
-        unsigned r  = USB->EPR[ep];
+        uint32_t ep = (istr & ISTR_EP_ID);
+        uint32_t r  = USB->EPR[ep];
         if (ep == 0) {
             if      (r & EP_SETUP)  ep0_setup();
             else if (r & EP_CTR_TX) ep0_in();
@@ -333,7 +333,7 @@ void USB_LP_CAN1_RX0_IRQHandler(void) {
     }
 }
 
-/* usgae */
+/* test benchmark  */
 // int main(){
 
 //     /* Enable GPIOC clock */

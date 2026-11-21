@@ -8,43 +8,46 @@
 #include <nested-vector.h>
 #include <sys-ctrl-blk.h>
 #include <usb-core.h>
+#include <stddef.h>
 
 
 void crt0_init(void){
-    extern volatile unsigned char  _sbss[], _ebss [], _sidata[] ;
-    extern volatile unsigned char   _sdata[] , _edata[];
-    extern volatile unsigned long  _estack[];
+    extern volatile uint8_t  _sbss[], _ebss [], _sidata[];
+    extern volatile uint8_t  _sdata[], _edata[];
     extern void (* const g_pfnVectors[])(void);
 
-    volatile unsigned long *src, *dst;
-    volatile unsigned char *byte_src, *byte_dst;
+    volatile uint32_t *src, *dst;
+    volatile uint8_t *byte_src, *byte_dst;
 
-    SCB->VTOR = (unsigned)g_pfnVectors;
+    SCB->VTOR = (uint32_t)g_pfnVectors;
 
     // Copy initialized data from Flash to RAM (optimize for large chunks)
-    src = (unsigned long *)&_sidata;
-    dst = (unsigned long *) &_sdata;
-    while (dst + 1 <= (unsigned long *) &_edata) {  *dst++ = *src++;  }
+    src = (volatile uint32_t *)&_sidata;
+    dst = (volatile uint32_t *) &_sdata;
+    while (dst + 1 <= (volatile uint32_t *) &_edata) {  *dst++ = *src++;  }
     // Handle remaining bytes (if the section size isn't a multiple of word size)
-    byte_src = (unsigned char *) src;
-    byte_dst = (unsigned char *) dst;
-    while (byte_dst < (unsigned char *) &_edata) { *byte_dst++ = *byte_src++;  }
+    byte_src = (volatile uint8_t *) src;
+    byte_dst = (volatile uint8_t *) dst;
+    while (byte_dst < (volatile uint8_t *) &_edata) { *byte_dst++ = *byte_src++;  }
     // Clear the .bss section (optimize for large chunks)
-    dst = (unsigned long *) &_sbss;
-    while (dst + 1 <= (unsigned long *) &_ebss) { *dst++ = 0; }
+    dst = (volatile uint32_t *) &_sbss;
+    while (dst + 1 <= (volatile uint32_t *) &_ebss) { *dst++ = 0; }
     // Handle remaining bytes in .bss
-    byte_dst = (unsigned char *) dst;
-    while (byte_dst < (unsigned char *) &_ebss) { *byte_dst++ = 0; }
+    byte_dst = (volatile uint8_t *) dst;
+    while (byte_dst < (volatile uint8_t *) &_ebss) { *byte_dst++ = 0; }
 }
 
-void *memset(void *dst, int c, unsigned int n)
+void *memset(void *dst, int c, size_t n)
 {
-    unsigned char *p = (unsigned char *)dst;
+    uint8_t *p = (uint8_t *)dst;
     while (n--) {
-        *p++ = (unsigned char)c;
+        *p++ = (uint8_t)c;
     }
     return dst;
 }
+
+uint32_t irq_count = 0; // debug
+
 
 int main()
 {
@@ -75,6 +78,8 @@ int main()
     while (1) {
         if (gt911_irq_flag) {
             gt911_irq_flag = 0;
+
+            /* Reads 0x814E + coordinates and writes 0x00 to 0x814E so INT stops pulsing */
             if (gt911_read_points(points, &count) == 0 && count > 0) {
                 for (uint8_t i = 0; i < count; i++) {
                     uint8_t  id   = points[i].id;
@@ -86,6 +91,9 @@ int main()
                     (void)id; (void)x; (void)y; (void)size;
                 }
             }
+        } else {
+            /* Sleep CPU until EXTI5 (touch) or SysTick (1 ms) fires */
+            __asm__ volatile ("wfi");
         }
     }
 

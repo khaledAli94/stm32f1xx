@@ -1,19 +1,21 @@
 #ifndef USB_REGS_H
 #define USB_REGS_H
 
+#include <stdint.h>
+
 #define USB_BASE      0x40005C00UL
 #define USB_PMA_BASE  0x40006000UL   // Packet memory area (shared with CAN) (512 bytes)
 
 #define USB ((struct usb_regs_t *) USB_BASE)
 
 struct usb_regs_t {
-    volatile unsigned EPR[8];      // 0x00-0x1C  Endpoint registers EP0R..EP7R
-    volatile unsigned RESERVED[8]; // 0x20-0x3C  Reserved
-    volatile unsigned CNTR;        // 0x40 Control register
-    volatile unsigned ISTR;        // 0x44 Interrupt status register
-    volatile unsigned FNR;         // 0x48 Frame number register
-    volatile unsigned DADDR;       // 0x4C Device address register
-    volatile unsigned BTABLE;      // 0x50 Buffer table address register
+    volatile uint32_t EPR[8];      // 0x00-0x1C  Endpoint registers EP0R..EP7R
+    volatile uint32_t RESERVED[8]; // 0x20-0x3C  Reserved
+    volatile uint32_t CNTR;        // 0x40 Control register
+    volatile uint32_t ISTR;        // 0x44 Interrupt status register
+    volatile uint32_t FNR;         // 0x48 Frame number register
+    volatile uint32_t DADDR;       // 0x4C Device address register
+    volatile uint32_t BTABLE;      // 0x50 Buffer table address register
 };
 
 /*
@@ -28,14 +30,14 @@ struct usb_regs_t {
 
 /* Buffer Descriptor Table (BDT) 4 half-words */
 struct usb_bdt_entry_t {
-    volatile unsigned short ADDR_TX;   // 0x0 Transmission buffer address
-    unsigned short PAD0;
-    volatile unsigned short COUNT_TX;  // 0x4 Transmission byte count
-    unsigned short PAD1;
-    volatile unsigned short ADDR_RX;   // 0x8 Reception buffer address
-    unsigned short PAD2;
-    volatile unsigned short COUNT_RX;  // 0xc Reception byte count
-    unsigned short PAD3;
+    volatile uint16_t ADDR_TX;   // 0x0 Transmission buffer address
+    uint16_t PAD0;
+    volatile uint16_t COUNT_TX;  // 0x4 Transmission byte count
+    uint16_t PAD1;
+    volatile uint16_t ADDR_RX;   // 0x8 Reception buffer address
+    uint16_t PAD2;
+    volatile uint16_t COUNT_RX;  // 0xc Reception byte count
+    uint16_t PAD3;
 };
 /*
  * BDT assumed at PMA offset 0 (USB->BTABLE = 0).
@@ -52,7 +54,7 @@ struct usb_bdt_entry_t {
 #define USB_BD_AT(n)  ((struct usb_bdt_entry_t *)(USB_PMA_BASE + 16U * (n)))
 
 /* 16-bit PMA access: byte offset b -> CPU addr USB_PMA_BASE + 2b */
-#define PMA_BYTE(b)   (*(volatile unsigned short *)(USB_PMA_BASE + 2U * (b)))
+#define PMA_BYTE(b)   (*(volatile uint16_t *)(USB_PMA_BASE + 2U * (b)))
 
 /* PMA byte offsets of data buffers (must start >= 128 to avoid BDT overlap at 0-127) */
 #define PMA_EP0_TX    64U 

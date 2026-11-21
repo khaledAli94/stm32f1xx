@@ -1,6 +1,7 @@
 #ifndef GT911_H
 #define GT911_H
 
+#include <stdint.h>
 #include <i2c.h>
 
 #define GT911_ADDR_14               0x14U
@@ -16,10 +17,10 @@
 #define GT911_MAX_TOUCHES           5U
 
 struct gt911_point_t {
-    unsigned char id;
-    unsigned short x;
-    unsigned short y;
-    unsigned short size;
+    uint8_t id;
+    uint16_t x;
+    uint16_t y;
+    uint16_t size;
 };
 
 extern volatile uint8_t gt911_irq_flag;
@@ -27,4 +28,4 @@ extern volatile uint8_t gt911_irq_flag;
 int gt911_init(volatile struct i2c_t *i2c);
 int gt911_read_points(struct gt911_point_t *points, uint8_t *count);
 
-#endif
+#endif /* GT911_H */

@@ -1,40 +1,42 @@
 #ifndef USB_DESC_H
 #define USB_DESC_H
 
+#include <stdint.h>
+
 struct usb_device_desc {
-    unsigned char  bLength;             // Size of this descriptor (18 bytes)
-    unsigned char  bDescriptorType;     // 0x01 for Device
-    unsigned short bcdUSB;              // USB Spec Release (e.g., 0x0200 for USB 2.0)
-    unsigned char  bDeviceClass;        // Class code (often 0x00, defined at Interface level)
-    unsigned char  bDeviceSubClass;     // Subclass code
-    unsigned char  bDeviceProtocol;     // Protocol code
-    unsigned char  bMaxPacketSize0;     // EP0 max packet size (8, 16, 32, or 64)
-    unsigned short idVendor;            // Vendor ID (assigned by USB-IF)
-    unsigned short idProduct;           // Product ID (assigned by manufacturer)
-    unsigned short bcdDevice;           // Device release number
-    unsigned char  iManufacturer;       // Index of manufacturer string
-    unsigned char  iProduct;            // Index of product string
-    unsigned char  iSerialNumber;       // Index of serial number string
-    unsigned char  bNumConfigurations;  // Number of possible configurations
+    uint8_t  bLength;             // Size of this descriptor (18 bytes)
+    uint8_t  bDescriptorType;     // 0x01 for Device
+    uint16_t bcdUSB;              // USB Spec Release (e.g., 0x0200 for USB 2.0)
+    uint8_t  bDeviceClass;        // Class code (often 0x00, defined at Interface level)
+    uint8_t  bDeviceSubClass;     // Subclass code
+    uint8_t  bDeviceProtocol;     // Protocol code
+    uint8_t  bMaxPacketSize0;     // EP0 max packet size (8, 16, 32, or 64)
+    uint16_t idVendor;            // Vendor ID (assigned by USB-IF)
+    uint16_t idProduct;           // Product ID (assigned by manufacturer)
+    uint16_t bcdDevice;           // Device release number
+    uint8_t  iManufacturer;       // Index of manufacturer string
+    uint8_t  iProduct;            // Index of product string
+    uint8_t  iSerialNumber;       // Index of serial number string
+    uint8_t  bNumConfigurations;  // Number of possible configurations
 } __attribute__((packed));
 
 struct usb_endpoint_desc {
-    unsigned char  bLength;             // Size of this descriptor (7 bytes)
-    unsigned char  bDescriptorType;     // 0x05 for Endpoint
-    unsigned char  bEndpointAddress;    // Bit 7: Direction (1=IN, 0=OUT), Bits 3..0: EP Number
-    unsigned char  bmAttributes;        // Transfer type (Control, Isochronous, Bulk, Interrupt)
-    unsigned short wMaxPacketSize;      // Maximum packet size this endpoint can send/receive
-    unsigned char  bInterval;           // Polling interval (used for Interrupt/Isochronous)
+    uint8_t  bLength;             // Size of this descriptor (7 bytes)
+    uint8_t  bDescriptorType;     // 0x05 for Endpoint
+    uint8_t  bEndpointAddress;    // Bit 7: Direction (1=IN, 0=OUT), Bits 3..0: EP Number
+    uint8_t  bmAttributes;        // Transfer type (Control, Isochronous, Bulk, Interrupt)
+    uint16_t wMaxPacketSize;      // Maximum packet size this endpoint can send/receive
+    uint8_t  bInterval;           // Polling interval (used for Interrupt/Isochronous)
 } __attribute__((packed));
 
 struct usb_string_desc {
-    unsigned char  bLength;             // Size of descriptor (2 + length of string in bytes)
-    unsigned char  bDescriptorType;     // 0x03 for String
-    unsigned short bString[];           // UTF-16LE characters (flexible array member)
+    uint8_t  bLength;             // Size of descriptor (2 + length of string in bytes)
+    uint8_t  bDescriptorType;     // 0x03 for String
+    uint16_t bString[];           // UTF-16LE characters (flexible array member)
 } __attribute__((packed));
 
 
-static unsigned char  lc[7] = { 
+static uint8_t lc[7] = { 
     0x00, 0xC2, 0x01, 0x00,  // 115200
     0x00, // 1 stop bit 
     0x00, // parity none
@@ -42,7 +44,7 @@ static unsigned char  lc[7] = {
 }; // Line Coding
 
 /* ---------- descriptors ---------- */
-static const unsigned char devd[] = {
+static const uint8_t devd[] = {
     18,       // bLength
     0x01,     // DEVICE descriptor
     0x00, 0x02, // USB 2.0
@@ -60,7 +62,7 @@ static const unsigned char devd[] = {
 };
 _Static_assert(sizeof(devd) == 18, "dev descriptor size drift");
 
-static const unsigned char cfgd[] = {
+static const uint8_t cfgd[] = {
     /* Configuration Descriptor */
     9,          // bLength
     0x02,       // CONFIGURATION descriptor
@@ -145,7 +147,7 @@ static const unsigned char cfgd[] = {
 };
 _Static_assert(sizeof(cfgd) == 67, "cfgd descriptor size drift");
 
-static const unsigned char str0[] = { 4, 0x03, 0x09, 0x04 };
+static const uint8_t str0[] = { 4, 0x03, 0x09, 0x04 };
 
 
 

@@ -4,7 +4,7 @@
 #include <gpio.h>
 
 /* SPI Driver Functions */
-void spi_init_master(volatile struct spi_t *spi, unsigned baud_rate) {
+void spi_init_master(volatile struct spi_t *spi, uint32_t baud_rate) {
     /* Disable SPI before configuration - access spi->CR1 (offset 0x00) */
     spi->CR1 &= ~(1 << 6);  /* Clear SPE bit (bit 6) */
     
@@ -48,7 +48,7 @@ void spi_init_slave(volatile struct spi_t *spi) {
     spi->CR1 |= (1 << 6);   /* Set SPE bit (bit 6) */
 }
 
-void spi_set_mode(volatile struct spi_t *spi, int cpol, int cpha) {
+void spi_set_mode(volatile struct spi_t *spi, int32_t cpol, int32_t cpha) {
     /* Disable SPI before changing mode - access spi->CR1 (offset 0x00) */
     spi->CR1 &= ~(1 << 6);  /* Clear SPE bit (bit 6) */
     
@@ -69,7 +69,7 @@ void spi_set_mode(volatile struct spi_t *spi, int cpol, int cpha) {
     spi->CR1 |= (1 << 6);   /* Set SPE bit (bit 6) */
 }
 
-void spi_set_data_size(volatile struct spi_t *spi, int is_16bit) {
+void spi_set_data_size(volatile struct spi_t *spi, int32_t is_16bit) {
     /* Disable SPI before changing data size - access spi->CR1 (offset 0x00) */
     spi->CR1 &= ~(1 << 6);  /* Clear SPE bit (bit 6) */
     
@@ -84,7 +84,7 @@ void spi_set_data_size(volatile struct spi_t *spi, int is_16bit) {
     spi->CR1 |= (1 << 6);   /* Set SPE bit (bit 6) */
 }
 
-unsigned char spi_transfer_byte(volatile struct spi_t *spi, unsigned char data) {
+uint8_t spi_transfer_byte(volatile struct spi_t *spi, uint8_t data) {
     /* Wait until TX buffer is empty - access spi->SR (offset 0x08) */
     while (!(spi->SR & (1 << 1)));  /* Check TXE bit (bit 1) */
     
@@ -95,10 +95,10 @@ unsigned char spi_transfer_byte(volatile struct spi_t *spi, unsigned char data) 
     while (!(spi->SR & (1 << 0)));  /* Check RXNE bit (bit 0) */
     
     /* Return received data - access spi->DR (offset 0x0C) */
-    return (unsigned char)(spi->DR & 0xFF);
+    return (uint8_t)(spi->DR & 0xFF);
 }
 
-unsigned short spi_transfer_short(volatile struct spi_t *spi, unsigned short data) {
+uint16_t spi_transfer_short(volatile struct spi_t *spi, uint16_t data) {
     /* Wait until TX buffer is empty - access spi->SR (offset 0x08) */
     while (!(spi->SR & (1 << 1)));  /* Check TXE bit (bit 1) */
     
@@ -109,32 +109,32 @@ unsigned short spi_transfer_short(volatile struct spi_t *spi, unsigned short dat
     while (!(spi->SR & (1 << 0)));  /* Check RXNE bit (bit 0) */
     
     /* Return received data - access spi->DR (offset 0x0C) */
-    return (unsigned short)(spi->DR & 0xFFFF);
+    return (uint16_t)(spi->DR & 0xFFFF);
 }
 
-void spi_transmit_bytes(volatile struct spi_t *spi, unsigned char *data, int length) {
-    for (int i = 0; i < length; i++) {
+void spi_transmit_bytes(volatile struct spi_t *spi, const uint8_t *data, uint32_t length) {
+    for (uint32_t i = 0; i < length; i++) {
         spi_transfer_byte(spi, data[i]);
     }
 }
 
-void spi_receive_bytes(volatile struct spi_t *spi, unsigned char *buffer, int length) {
-    for (int i = 0; i < length; i++) {
+void spi_receive_bytes(volatile struct spi_t *spi, uint8_t *buffer, uint32_t length) {
+    for (uint32_t i = 0; i < length; i++) {
         buffer[i] = spi_transfer_byte(spi, 0xFF);  /* Send dummy byte to receive */
     }
 }
 
-int spi_is_busy(volatile struct spi_t *spi) {
+int32_t spi_is_busy(volatile struct spi_t *spi) {
     /* Check busy flag - access spi->SR (offset 0x08) */
     return (spi->SR & (1 << 7)) ? 1 : 0;  /* Check BSY bit (bit 7) */
 }
 
-int spi_tx_buffer_empty(volatile struct spi_t *spi) {
+int32_t spi_tx_buffer_empty(volatile struct spi_t *spi) {
     /* Check TX buffer empty flag - access spi->SR (offset 0x08) */
     return (spi->SR & (1 << 1)) ? 1 : 0;  /* Check TXE bit (bit 1) */
 }
 
-int spi_rx_buffer_ready(volatile struct spi_t *spi) {
+int32_t spi_rx_buffer_ready(volatile struct spi_t *spi) {
     /* Check RX buffer ready flag - access spi->SR (offset 0x08) */
     return (spi->SR & (1 << 0)) ? 1 : 0;  /* Check RXNE bit (bit 0) */
 }
@@ -149,7 +149,7 @@ void spi_disable(volatile struct spi_t *spi) {
     spi->CR1 &= ~(1 << 6);  /* Clear SPE bit (bit 6) */
 }
 
-void spi_set_lsb_first(volatile struct spi_t *spi, int lsb_first) {
+void spi_set_lsb_first(volatile struct spi_t *spi, int32_t lsb_first) {
     /* Disable SPI before changing format - access spi->CR1 (offset 0x00) */
     spi->CR1 &= ~(1 << 6);  /* Clear SPE bit (bit 6) */
     
