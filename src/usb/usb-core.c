@@ -23,7 +23,7 @@ static uint32_t bulk_tx_len;
 
 void usb_clock_init(void) {
     /* Flash: 2 wait states + prefetch (needed for 72 MHz on F103) */
-    flash_set_latency(72000000U);
+    flash_set_latency(FREQ_72MHZ);
 
     RCC->CR |= (1U << 16);                       /* HSEON  */
     while (!(RCC->CR & (1U << 17))) { }           /* HSERDY */
@@ -97,19 +97,19 @@ static void ep_clear_ctr_tx(uint32_t ep)
 void usb_init(void) {
     uint32_t d;
 
-    RCC->APB2ENR |= (1U << 2);                   /* GPIOA-EN */
-    RCC->APB1ENR |= (1U << 23);                  /* USB-EN  */
+    RCC->APB2ENR |= (1U << 2);  /* GPIOA-EN */
+    RCC->APB1ENR |= (1U << 23); /* USB-EN  */
 
     /* PA11 / PA12 as input floating */
     GPIOA->CRH = (GPIOA->CRH & ~0x000FF000U) | 0x00044000U;
-
-    for (d = 0x40000U; d; --d) { }                /* settle */
+    delay_ms(10);
 
     USB->CNTR = CNTR_FRES;
-    for (d = 0x40000U; d; --d) { }
+    delay_ms(10);
+
     USB->CNTR = 0;
     USB->ISTR = 0;
-    USB->BTABLE = 0;                             /* BTABLE at PMA byte 0 */
+    USB->BTABLE = 0; /* BTABLE at PMA byte 0 */
 
     /* EP0: control, RX valid, TX NAK */
     ep_set(0, 0xFFFFU, EP_TYPE_CONTROL | EP_TX_STAT(EP_NAK) | EP_RX_STAT(EP_VALID));
@@ -137,7 +137,8 @@ static void ep0_setup(void) {
 
     pma_read16(PMA_EP0_RX, s, 8);
     ep_clear_ctr_rx(0);
-    bmReq = s[0]; bReq = s[1];
+    bmReq = s[0];
+    bReq = s[1];
     wVal  = s[2] | ((uint32_t)s[3] << 8);
     wLen  = s[6] | ((uint32_t)s[7] << 8);
 
@@ -262,7 +263,7 @@ int cdc_send_data(const uint8_t *data, uint32_t len) {
     return 0;
 }
 
-static void ep1_out(void) {
+static void ep1++_out(void) {
     uint8_t buf[64];
     uint32_t cnt = USB_BD_AT(1)->COUNT_RX & COUNT_NBYTES_MASK;
     ep_clear_ctr_rx(1);

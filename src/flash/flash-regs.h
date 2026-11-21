@@ -3,8 +3,11 @@
 
 #include <stdint.h>
 
+#define FREQ_72MHZ 72000000U
+
 #define FLASH_REG_BASE 0x40022000UL
 #define FLASH ((volatile struct flash_regs_t *) FLASH_REG_BASE)
+
 
 struct flash_regs_t {
     volatile uint32_t ACR;      // 0x00 - Access Control Register

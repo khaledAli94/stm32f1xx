@@ -50,62 +50,7 @@ if __name__ == "__main__":
 
 """
 /* ===================== GT911 integration ===================== */
-extern unsigned char bulk_tx_busy;
-#define GT911_REG_PID     0x8140u
-#define GT911_REG_STATUS  0x814Eu
-#define GT911_REG_POINT1  0x8150u
-#define GT911_MAX_POINTS  5u
-
-static int i2c_probe(volatile struct i2c_t *i2c, unsigned char addr)
-{
-    unsigned timeout = I2C_TIMEOUT_CYCLES;
-
-    i2c->CR1 |= I2C_CR1_START;
-    while (!(i2c->SR1 & I2C_SR1_SB)) {
-        if (--timeout == 0U) return I2C_ERR_TIMEOUT;
-    }
-
-    i2c->DR = (unsigned)(addr << 1);
-
-    timeout = I2C_TIMEOUT_CYCLES;
-    while (!(i2c->SR1 & (I2C_SR1_ADDR | I2C_SR1_AF))) {
-        if (--timeout == 0U) {
-            i2c->CR1 |= I2C_CR1_STOP;
-            return I2C_ERR_TIMEOUT;
-        }
-    }
-
-    if (i2c->SR1 & I2C_SR1_AF) {
-        i2c->SR1 &= ~I2C_SR1_AF;
-        i2c->CR1 |= I2C_CR1_STOP;
-        return I2C_ERR_NACK;
-    }
-
-    (void)i2c->SR1;
-    (void)i2c->SR2;
-    i2c->CR1 |= I2C_CR1_STOP;
-    return I2C_OK;
-}
-
-static int gt911_read_reg(volatile struct i2c_t *i2c, unsigned char addr,
-                           unsigned short reg, unsigned char *data, unsigned short len)
-{
-    unsigned char reg_buf[2] = { (unsigned char)(reg >> 8), (unsigned char)(reg & 0xFF) };
-    int ret = i2c_write(i2c, addr, reg_buf, 2);
-    if (ret != I2C_OK) return ret;
-    return i2c_read(i2c, addr, data, len);
-}
-
-static int gt911_write_reg(volatile struct i2c_t *i2c, unsigned char addr,
-                            unsigned short reg, const unsigned char *data, unsigned short len)
-{
-    unsigned char buf[2 + 4];
-    if (len > 4U) return I2C_ERR_BUS;
-    buf[0] = (unsigned char)(reg >> 8);
-    buf[1] = (unsigned char)(reg & 0xFF);
-    for (unsigned short i = 0; i < len; i++) buf[2 + i] = data[i];
-    return i2c_write(i2c, addr, buf, (unsigned short)(len + 2U));
-}
+extern uint8_t  bulk_tx_busy;
 
 /* tiny unsigned->decimal-ASCII, no libc dependency */
 static unsigned u16_to_dec(unsigned val, char *out)
@@ -123,78 +68,92 @@ static unsigned u16_to_dec(unsigned val, char *out)
 
 /* Builds "id,x,y;id,x,y;...\n" for up to GT911_MAX_POINTS points.
    Bails out early if it would overflow max_len (keeps us under 64B/packet). */
-static unsigned format_multi_touch(char *line, unsigned max_len,
-                                    const unsigned char *pts, unsigned n)
+static unsigned format_multi_touch(char *line, unsigned max_len, const struct gt911_point_t *pts, unsigned n)
 {
     unsigned p = 0;
-    for (unsigned i = 0; i < n; i++) {
-        unsigned id = pts[i * 8 + 0];
-        unsigned x  = pts[i * 8 + 1] | ((unsigned)pts[i * 8 + 2] << 8);
-        unsigned y  = pts[i * 8 + 3] | ((unsigned)pts[i * 8 + 4] << 8);
 
-        /* worst case per point: "4,9999,9999;" = 12 bytes, reserve margin */
-        if (p + 14U >= max_len) break;
+    if (max_len == 0)
+        return 0;
+
+    for (unsigned i = 0; i < n; i++) {
+
+        unsigned id = pts[i].id;
+        unsigned x  = pts[i].x;
+        unsigned y  = pts[i].y;
+
+        /* Reserve space for newline */
+        if (p + 14U >= max_len)
+            break;
 
         p += u16_to_dec(id, line + p);
         line[p++] = ',';
+
         p += u16_to_dec(x, line + p);
         line[p++] = ',';
+
         p += u16_to_dec(y, line + p);
         line[p++] = ';';
     }
-    if (p < max_len) line[p++] = '\n';
+
+    line[p++] = '\n';
+
     return p;
 }
 
-/* ===================== main ===================== */
+
 int main(void)
 {
-    /* LED on PC13 */
-    RCC->APB2ENR |= (1U << 4);  /* IOPCEN */
+    /* PC13 LED */
+    RCC->APB2ENR |= (1U << 4);
+
     GPIOC->CRH = (GPIOC->CRH & ~0x00F00000U) | 0x00200000U;
-    GPIOC->BSRR = (1U << 13);   /* LED OFF (active low) */
 
+    GPIOC->BSRR = (1U << 13);
+
+    /* USB clock: 72 MHz SYSCLK, 48 MHz USB */
     usb_clock_init();
-    i2c_init(I2C1, 400000U);
 
-    rcc_gpiob_enable();
-    gpio_pin_mode(GPIOB, PIN_5, GPIO_INPUT_FLOATING);
+    /* I2C1 */
+    i2c_init(I2C1, FREQ_400KHZ);
 
-    unsigned char touch_addr = 0;
-    if (i2c_probe(I2C1, 0x5D) == I2C_OK)      touch_addr = 0x5D;
-    else if (i2c_probe(I2C1, 0x14) == I2C_OK) touch_addr = 0x14;
+    /* GT911 initialization */
+    if (gt911_init(I2C1) != 0) {
+        while (1);
+    }
 
-    __asm__("cpsie i");
+    /* Enable interrupts */
+    __asm__ volatile ("cpsie i");
+
+    /* USB device initialization */
     usb_init();
 
-    unsigned char status;
-    unsigned char pts[GT911_MAX_POINTS * 8];
+    struct gt911_point_t points[GT911_MAX_TOUCHES] = {0};
+    uint8_t count = 0;
     char line[64];
+    unsigned len;
 
-    while (1) {
-        if (touch_addr) {
-            if (gt911_read_reg(I2C1, touch_addr, GT911_REG_STATUS, &status, 1) == I2C_OK) {
-                if (status & 0x80U) {
-                    unsigned n = status & 0x0FU;
-                    if (n > GT911_MAX_POINTS) n = GT911_MAX_POINTS;
 
-                    if (n > 0U) {
-                        /* single I2C transaction pulls all active points */
-                        gt911_read_reg(I2C1, touch_addr, GT911_REG_POINT1,
-                                       pts, (unsigned short)(n * 8U));
 
-                        unsigned len = format_multi_touch(line, sizeof(line), pts, n);
-                        if (!bulk_tx_busy && len > 0U) {
-                            cdc_send_data((unsigned char *)line, len);
-                        }
+    while (1)
+    {
+        if (gt911_irq_flag)
+        {
+            gt911_irq_flag = 0;
+            if (gt911_read_points(points, &count) == 0)
+            {
+                if (count > 0)
+                {
+                    len = format_multi_touch(line, sizeof(line), points, count);
+                    if (!bulk_tx_busy && len > 0 && len <= 64)
+                    {
+                        cdc_send_data((const uint8_t *)line, len);
                     }
-
-                    unsigned char clear = 0;
-                    gt911_write_reg(I2C1, touch_addr, GT911_REG_STATUS, &clear, 1);
                 }
             }
         }
-        for (volatile int d = 0x8000; d; --d) { }
+
+        /* Wait for touch interrupt or USB interrupt */
+        __asm__ volatile ("wfi");
     }
 
     return 0;

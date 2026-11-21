@@ -48,53 +48,110 @@ void *memset(void *dst, int c, size_t n)
 
 uint32_t irq_count = 0; // debug
 
+extern uint8_t  bulk_tx_busy;
 
-int main()
+/* tiny unsigned->decimal-ASCII, no libc dependency */
+static unsigned u16_to_dec(unsigned val, char *out)
 {
-    /* 1. Initialize system clocks (72 MHz PLL or default 8 MHz HSI) */
-    rcc_sysclk_hse_72mhz();
-
-    systick_init();
-    tim2_init();
-    __asm__ volatile ("cpsie i");
-    
-    /* 2. Wait for GT911 internal power-on reset (~100 ms since RST is tied to 3.3V) */
-    delay_ms(100);
-
-    /* 3. Initialize I2C1 at 400 kHz Fast Mode (PB6 = SCL, PB7 = SDA) */
-    i2c_init(I2C1, 400000U);
-
-    /* 4. Probe GT911 at 0x5D, configure PB5 as floating input, clear status */
-    if (gt911_init(I2C1) != 0) {
-        while (1) {
-            /* Error: GT911 did not respond at 0x5D (check pull-ups or if latched at 0x14) */
-        }
+    char tmp[6];
+    unsigned n = 0;
+    if (val == 0U) { out[0] = '0'; return 1U; }
+    while (val > 0U && n < sizeof(tmp)) {
+        tmp[n++] = (char)('0' + (val % 10U));
+        val /= 10U;
     }
+    for (unsigned i = 0; i < n; i++) out[i] = tmp[n - 1U - i];
+    return n;
+}
+
+/* Builds "id,x,y;id,x,y;...\n" for up to GT911_MAX_POINTS points.
+   Bails out early if it would overflow max_len (keeps us under 64B/packet). */
+static unsigned format_multi_touch(char *line, unsigned max_len, const struct gt911_point_t *pts, unsigned n)
+{
+    unsigned p = 0;
+
+    if (max_len == 0)
+        return 0;
+
+    for (unsigned i = 0; i < n; i++) {
+
+        unsigned id = pts[i].id;
+        unsigned x  = pts[i].x;
+        unsigned y  = pts[i].y;
+
+        /* Reserve space for newline */
+        if (p + 14U >= max_len)
+            break;
+
+        p += u16_to_dec(id, line + p);
+        line[p++] = ',';
+
+        p += u16_to_dec(x, line + p);
+        line[p++] = ',';
+
+        p += u16_to_dec(y, line + p);
+        line[p++] = ';';
+    }
+
+    line[p++] = '\n';
+
+    return p;
+}
+
+
+int main(void)
+{
+    /* PC13 LED */
+    RCC->APB2ENR |= (1U << 4);
+
+    GPIOC->CRH = (GPIOC->CRH & ~0x00F00000U) | 0x00200000U;
+
+    GPIOC->BSRR = (1U << 13);
+
+    /* USB clock: 72 MHz SYSCLK, 48 MHz USB */
+    usb_clock_init();
+
+    /* I2C1 */
+    i2c_init(I2C1, FREQ_400KHZ);
+
+    /* GT911 initialization */
+    if (gt911_init(I2C1) != 0) {
+        while (1);
+    }
+
+    /* Enable interrupts */
+    __asm__ volatile ("cpsie i");
+
+    /* USB device initialization */
+    usb_init();
 
     struct gt911_point_t points[GT911_MAX_TOUCHES] = {0};
     uint8_t count = 0;
+    char line[64];
+    unsigned len;
 
 
-    while (1) {
-        if (gt911_irq_flag) {
+
+    while (1)
+    {
+        if (gt911_irq_flag)
+        {
             gt911_irq_flag = 0;
-
-            /* Reads 0x814E + coordinates and writes 0x00 to 0x814E so INT stops pulsing */
-            if (gt911_read_points(points, &count) == 0 && count > 0) {
-                for (uint8_t i = 0; i < count; i++) {
-                    uint8_t  id   = points[i].id;
-                    uint16_t x    = points[i].x;
-                    uint16_t y    = points[i].y;
-                    uint16_t size = points[i].size;
-
-                    /* Process touch coordinates (x, y) here */
-                    (void)id; (void)x; (void)y; (void)size;
+            if (gt911_read_points(points, &count) == 0)
+            {
+                if (count > 0)
+                {
+                    len = format_multi_touch(line, sizeof(line), points, count);
+                    if (!bulk_tx_busy && len > 0 && len <= 64)
+                    {
+                        cdc_send_data((const uint8_t *)line, len);
+                    }
                 }
             }
-        } else {
-            /* Sleep CPU until EXTI5 (touch) or SysTick (1 ms) fires */
-            __asm__ volatile ("wfi");
         }
+
+        /* Wait for touch interrupt or USB interrupt */
+        __asm__ volatile ("wfi");
     }
 
     return 0;
