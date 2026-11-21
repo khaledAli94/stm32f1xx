@@ -46,7 +46,7 @@ void CAN1_RX1_IRQHandler(void){}
 void CAN1_SCE_IRQHandler(void){}
 void EXTI9_5_IRQHandler(void)
 {
-    static uint32_t irq_count = 0; // debug
+    extern uint32_t irq_count; // debug
     if (EXTI->PR & (1U << 5)) {
         EXTI->PR = (1U << 5);
         gt911_irq_flag = 1;

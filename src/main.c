@@ -46,6 +46,9 @@ void *memset(void *dst, int c, size_t n)
     return dst;
 }
 
+uint32_t irq_count = 0; // debug
+
+
 int main()
 {
     /* 1. Initialize system clocks (72 MHz PLL or default 8 MHz HSI) */
