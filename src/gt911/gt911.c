@@ -14,6 +14,16 @@
 
 volatile uint8_t gt911_irq_flag = 0;
 
+/* gt911 expects two's complement additive checksum (~sum) + 1U <=> (0U - sum) */
+static uint8_t calc_checksum(const uint8_t *cfg, uint16_t len)
+{
+    uint8_t sum = 0U;
+    for (uint16_t i = 0U; i < len; i++) {
+        sum = (uint8_t)(sum + cfg[i]);
+    }
+    return (uint8_t)(0U - sum);
+}
+
 static int gt911_read_reg(volatile struct i2c_t *i2c, uint16_t reg, uint8_t *buf, uint16_t len)
 {
     uint8_t addr_bytes[2] = { (uint8_t)(reg >> 8), (uint8_t)(reg & 0xFFU) };

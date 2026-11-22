@@ -114,7 +114,7 @@ int main(void)
     i2c_init(I2C1, FREQ_400KHZ);
 
     /* GT911 initialization */
-    if (gt911_init(I2C1) != 0) {
+    if (!gt911_init(I2C1)) {
         while (1);
     }
 

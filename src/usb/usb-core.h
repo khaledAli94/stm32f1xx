@@ -57,6 +57,10 @@ enum {
     USB_REQ_VENDOR   = 0x40,
 };
 
+enum { // bmRequestType 
+    USB_DIR_OUT = 0x00,
+    USB_DIR_IN  = 0x80
+};
 
 enum {
     CDC_EP_DATA_OUT = 0x1,
