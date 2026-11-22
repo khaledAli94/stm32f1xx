@@ -69,6 +69,18 @@ struct i2c_t {
 #define FREQ_100KHZ 100000U
 
 
+/* TODO:
+enum {
+    I2C_OK = 1,
+    I2C_FAIL = 0,
+    I2C_ERR_TIMEOUT = -1,
+    I2C_ERR_NACK = -2,
+    I2C_ERR_BUS = -3,
+    I2C_ERR_BUSY = -4
+};
+
+    */
+
 /* Driver Status Codes */
 enum {
     I2C_OK = 0,
