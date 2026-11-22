@@ -105,7 +105,6 @@ int main(void)
     RCC->APB2ENR |= (1U << 4);
 
     GPIOC->CRH = (GPIOC->CRH & ~0x00F00000U) | 0x00200000U;
-
     GPIOC->BSRR = (1U << 13);
 
     /* USB clock: 72 MHz SYSCLK, 48 MHz USB */

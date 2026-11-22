@@ -2,7 +2,7 @@
 #define USB_CORE_H
 
 #include <usb-regs.h>
-#include <usb-desc.h>
+#include <usb-cdc-desc.h>
 
 #include <rcc.h>
 #include <systick.h>
@@ -46,6 +46,9 @@ enum {
     USB_DESC_STRING        = 0x3,
     USB_DESC_INTERFACE     = 0x4,
     USB_DESC_ENDPOINT      = 0x5,
+
+    USB_DESC_HID           = 0x21,
+    USB_DESC_REPORT        = 0x22
 };
 
 enum {
@@ -63,7 +66,7 @@ enum {
 
 void usb_clock_init(void);
 void usb_init(void);
-int  cdc_send_data(const uint8_t *data, uint32_t len);
+int cdc_send_data(const uint8_t *data, uint32_t len);
 
 
 #endif /* USB_CORE_H */

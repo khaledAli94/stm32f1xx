@@ -78,7 +78,7 @@ int gt911_init(volatile struct i2c_t *i2c)
 
 int gt911_read_points(struct gt911_point_t *points, uint8_t *count)
 {
-    EXTI->IMR &= ~(1U << 5); // Mute PB6 (SCL) crosstalk during I2C transfer
+    EXTI->IMR &= ~(1U << 5); // Mute PB6 (SCL) crosstalk during I2C transfer (mask)
 
     uint8_t status = 0, zero = 0;
     *count = 0;

@@ -23,6 +23,16 @@ struct gt911_point_t {
     uint16_t size;
 };
 
+/* gt911 expects two's complement additive checksum (~sum) + 1U <=> (0U - sum) */
+static uint8_t calc_checksum(const uint8_t *cfg, uint16_t len)
+{
+    uint8_t sum = 0U;
+    for (uint16_t i = 0U; i < len; i++) {
+        sum = (uint8_t)(sum + cfg[i]);
+    }
+    return (uint8_t)(0U - sum);
+}
+
 extern volatile uint8_t gt911_irq_flag;
 
 int gt911_init(volatile struct i2c_t *i2c);
