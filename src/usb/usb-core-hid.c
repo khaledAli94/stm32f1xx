@@ -2,6 +2,7 @@
 
 /*
  * CDC requires 2 interfaces, 3 endpoints, and complex union/call-management descriptors
+ * HID requires 1 interface, 1–2 interrupt-endpoints, HID-Report-descriptors
  * per modemax bulk packet sz
  * Low-Speed  1.5 Mbit/s 8 bytes
  * Full-Speed 12 Mbit/s 64 bytes
@@ -11,7 +12,7 @@
 
 static uint8_t    usb_addr;
 static enum usb_ctrl_state_t  ctrl_pending;
-static uint8_t    ctrl_buf[128]; /* internal buffer used for control transfers */
+static uint8_t    ctrl_buf[384]; /* internal buffer used for control transfers */
 static uint32_t   ctrl_len;
 static uint32_t   ctrl_pos;
 
@@ -20,6 +21,20 @@ uint8_t  bulk_tx_busy;
 static uint8_t  bulk_tx_buf[64];
 static uint32_t bulk_tx_len;
 
+static uint8_t  usb_configured;
+static uint8_t  hid_idle_rate;
+
+static void hid_make_empty_report(void)
+{
+    uint32_t i;
+
+    for (i = 0; i < HID_MOUSE_REPORT_SIZE; i++) {
+        ctrl_buf[i] = 0;
+    }
+
+    ctrl_buf[0] = HID_MOUSE_REPORT_ID;
+    ctrl_len = HID_MOUSE_REPORT_SIZE;
+}
 
 void usb_clock_init(void) {
     /* Flash: 2 wait states + prefetch (needed for 72 MHz on F103) */
@@ -95,8 +110,6 @@ static void ep_clear_ctr_tx(uint32_t ep)
 
 /* ---------- init ---------- */
 void usb_init(void) {
-    uint32_t d;
-
     RCC->APB2ENR |= (1U << 2);  /* GPIOA-EN */
     RCC->APB1ENR |= (1U << 23); /* USB-EN  */
 
@@ -151,6 +164,9 @@ static void ep0_setup(void) {
             if      (type == USB_DESC_DEVICE) { src = devd; n = sizeof(devd); }
             else if (type == USB_DESC_CONFIGURATION) { src = cfgd; n = sizeof(cfgd); }
             else if (type == USB_DESC_STRING && (wVal & 0xFFU) == 0) { src = str0; n = sizeof(str0);}
+            else if (type == USB_DESC_HID) { src = cfgd + 18U; n = 9U; } // HID
+            else if (type == USB_DESC_REPORT) { src = hid_report_desc; n = sizeof(hid_report_desc); } // HID
+
             if (!src) { ep_set_tx(0, EP_STALL); ep_set_rx(0, EP_STALL); return; }
             if (n > sizeof(ctrl_buf)) n = sizeof(ctrl_buf);
             if (n > wLen) n = wLen;
@@ -163,16 +179,26 @@ static void ep0_setup(void) {
             ctrl_pending = CTRL_SET_ADDRESS;
             ep_set_tx(0, EP_VALID);
         } else if (bReq == REQ_SET_CONFIGURATION) {
-            if (wVal) {
+            /* HID usees EP1 as INT-EP, whereas CDC uses EP1 as BULK IN/OUT , EP2 as ser-notif-EP */
+            if (wVal == 1U) {
                 USB_BD_AT(1)->ADDR_TX = PMA_EP1_TX;  USB_BD_AT(1)->COUNT_TX = 0;
-                USB_BD_AT(1)->ADDR_RX = PMA_EP1_RX;  USB_BD_AT(1)->COUNT_RX = COUNT_RX_64B;
-                ep_set(1, 0xFFFFU, EP_ADDR(1) | EP_TYPE_BULK | EP_TX_STAT(EP_NAK) | EP_RX_STAT(EP_VALID));
-                USB_BD_AT(2)->ADDR_TX = PMA_EP2_TX;  USB_BD_AT(2)->COUNT_TX = 0;
-                ep_set(2, 0xFFFFU, EP_ADDR(2) | EP_TYPE_INT | EP_TX_STAT(EP_NAK) | EP_RX_STAT(EP_DISABLED));
+                ep_set(1, 0xFFFFU, EP_ADDR(1) | EP_TYPE_INT | EP_TX_STAT(EP_NAK) | EP_RX_STAT(EP_DISABLED));
+                bulk_tx_busy = 0;
+                usb_configured = 1;
+            } else if (wVal == 0U) {
+                bulk_tx_busy = 0;
+                usb_configured = 0;
+                ep_set(1, 0xFFFFU, EP_ADDR(1) | EP_TYPE_INT | EP_TX_STAT(EP_DISABLED) | EP_RX_STAT(EP_DISABLED));
+            } else {
+                ep_set_tx(0, EP_STALL); ep_set_rx(0, EP_STALL); return;
             }
             USB_BD_AT(0)->COUNT_TX = 0;
             ctrl_pending = CTRL_STATUS_IN;
             ep_set_tx(0, EP_VALID);
+        } else if (bReq == REQ_GET_CONFIGURATION) { // HID and CDC
+            ctrl_buf[0] = usb_configured ? 1U : 0U;
+            ctrl_len = 1;
+            ep0_send_chunk();
         } else if (bReq == REQ_GET_STATUS) {
             ctrl_buf[0] = 0; ctrl_buf[1] = 0;
             ctrl_len = 2;
@@ -193,22 +219,32 @@ static void ep0_setup(void) {
             ep_set_tx(0, EP_STALL); ep_set_rx(0, EP_STALL);
         }
     } else if ((bmReq & 0x60U) == USB_REQ_CLASS) {
-        if (bReq == CDC_SET_LINE_CODING) {
-            ctrl_len = (wLen < 7) ? wLen : 7;
-            ctrl_pos = 0;
-            ctrl_pending = CTRL_DATA_OUT;
-            ep_set_rx(0, EP_VALID);
-        } else if (bReq == CDC_GET_LINE_CODING) {
-            uint32_t i; for (i = 0; i < 7; i++) ctrl_buf[i] = lc[i];
-            ctrl_len = 7; ep0_send_chunk();
-        } else if (bReq == CDC_SET_CONTROL_LINE_STATE) {
+        if (bReq == HID_SET_IDLE) {
+            hid_idle_rate = (uint8_t)(wVal >> 8);
             USB_BD_AT(0)->COUNT_TX = 0;
             ctrl_pending = CTRL_STATUS_IN;
             ep_set_tx(0, EP_VALID);
+        } else if (bReq == HID_GET_IDLE) {
+            ctrl_buf[0] = hid_idle_rate;
+            ctrl_len = 1;
+            ep0_send_chunk();
+        } else if (bReq == HID_SET_PROTOCOL) {
+            USB_BD_AT(0)->COUNT_TX = 0;
+            ctrl_pending = CTRL_STATUS_IN;
+            ep_set_tx(0, EP_VALID);
+        } else if (bReq == HID_GET_PROTOCOL) {
+            ctrl_buf[0] = 1; /* Report protocol */
+            ctrl_len = 1;
+            ep0_send_chunk();
+        } else if (bReq == HID_GET_REPORT) {
+            hid_make_empty_report();
+            if (ctrl_len > wLen) ctrl_len = wLen;
+            ep0_send_chunk();
         } else {
             ep_set_tx(0, EP_STALL); ep_set_rx(0, EP_STALL);
         }
-    } else {
+    }    
+    else {
         ep_set_tx(0, EP_STALL); ep_set_rx(0, EP_STALL);
     }
 }
@@ -236,7 +272,6 @@ static void ep0_out(void) {
         pma_read16(PMA_EP0_RX, ctrl_buf + ctrl_pos, cnt);
         ctrl_pos += cnt;
         if (ctrl_pos >= ctrl_len) {
-            uint32_t i; for (i = 0; i < 7; i++) lc[i] = ctrl_buf[i];
             USB_BD_AT(0)->COUNT_TX = 0;
             ctrl_pending = CTRL_STATUS_IN;
             ep_set_tx(0, EP_VALID);
@@ -251,36 +286,18 @@ static void ep0_out(void) {
     }
 }
 
-/* ---------- Bulk IN driver API (fixed flow control) ---------- */
-int cdc_send_data(const uint8_t *data, uint32_t len) {
-    if (bulk_tx_busy || len == 0 || len > 64) return -1;
+/* ---------- HID INT IN API ---------- */
+int hid_send_report(const uint8_t *data, uint32_t len) {
+    if (!usb_configured || bulk_tx_busy || len == 0 || len > 64) return -1;
     { uint32_t i; for (i = 0; i < len; i++) bulk_tx_buf[i] = data[i]; }
     bulk_tx_len  = len;
     bulk_tx_busy = 1;
+
     pma_write16(PMA_EP1_TX, bulk_tx_buf, len);
     USB_BD_AT(1)->COUNT_TX = (uint16_t)len;
+    /* CDC set EP1 to VALID for a bulk packet, where HID sets EP1 to VALID for interrupt-input-report */
     ep_set_tx(1, EP_VALID);
     return 0;
-}
-
-static void ep1_out(void) {
-    uint8_t buf[64];
-    uint32_t cnt = USB_BD_AT(1)->COUNT_RX & COUNT_NBYTES_MASK;
-    ep_clear_ctr_rx(1);
-    pma_read16(PMA_EP1_RX, buf, cnt);
-
-    if (cnt > 0) {
-        if (buf[0] == 1) {
-            GPIOC->BRR = (1U << 13);   /* LED ON (pull low) */
-        } else if (buf[0] == 0) {
-            GPIOC->BSRR = (1U << 13);  /* LED OFF (pull high) */
-            }
-        /* echo back, but only if the IN path is free */
-        // if (!bulk_tx_busy && cnt > 0) {
-        //     cdc_send_data(buf, cnt);
-        // }
-    }
-    ep_set_rx(1, EP_VALID);
 }
 
 /* ---------- ISR ---------- */
@@ -291,7 +308,7 @@ void USB_LP_CAN1_RX0_IRQHandler(void) {
         USB->ISTR = ~ISTR_RESET;
         usb_addr = 0;
         ctrl_pending = CTRL_IDLE;
-        bulk_tx_busy = 0;
+        bulk_tx_busy = 0; usb_configured = 0; hid_idle_rate = 0;
         USB->DADDR = DADDR_EF;  /* EF, ADD[0-6] = 0 */
         USB->CNTR  = 0;
         ep_set(0, 0xFFFFU, EP_TYPE_CONTROL | EP_TX_STAT(EP_NAK) | EP_RX_STAT(EP_VALID));
@@ -318,11 +335,13 @@ void USB_LP_CAN1_RX0_IRQHandler(void) {
             if      (r & EP_SETUP)  ep0_setup();
             else if (r & EP_CTR_TX) ep0_in();
             else if (r & EP_CTR_RX) ep0_out();
-        } else if (ep == 1) {
-            if      (r & EP_CTR_RX) ep1_out();
-            else if (r & EP_CTR_TX) {
+        } else if (ep == 1) { /* HID EP1 is IN-only,  CDC had ep1_out() for serial data received from the host,  HID touch normally only sends reports to the host.*/
+            if (r & EP_CTR_TX) {
                 ep_clear_ctr_tx(1);
                 bulk_tx_busy = 0;               /* IN complete, safe to reuse */
+            }
+            if (r & EP_CTR_RX) {
+                ep_clear_ctr_rx(1);
             }
         } else {
             USB->EPR[ep] = EP_CTR_TX | EP_CTR_RX;
@@ -333,29 +352,3 @@ void USB_LP_CAN1_RX0_IRQHandler(void) {
         USB->ISTR = ~(istr & (ISTR_SOF | ISTR_ESOF));
     }
 }
-
-/* test benchmark  */
-// int main(){
-
-//     /* Enable GPIOC clock */
-//     RCC->APB2ENR |= (1U << 4);  /* IOPCEN */
-
-//     /* Configure PC13 as Output Push-Pull 2MHz */
-//     GPIOC->CRH = (GPIOC->CRH & ~0x00F00000U) | 0x00200000U;
-
-//     /* Default LED state: OFF (active low -> set high) */
-//     GPIOC->BSRR = (1U << 13);
-
-//     usb_clock_init();
-//     __asm__("cpsie i");  /* Enable global interrupts */
-//     usb_init();
-
-    
-//     while (1)
-//     {
-//         __asm__("wfi");  /* wakeup on intterupt */
-//     }
-    
-
-//     return 0;
-// }

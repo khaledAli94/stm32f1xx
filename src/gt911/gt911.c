@@ -65,11 +65,12 @@ int gt911_init(volatile struct i2c_t *i2c)
     uint8_t id[4] = {0}, mod_sw1 = 0, zero = 0;
     if (gt911_read_reg(i2c, GT911_REG_PRODUCT_ID, id, 4U) != I2C_OK) return -1;
     if (id[0] != '9' || id[1] != '1' || id[2] != '1') return -1;
-    if (gt911_read_reg(i2c, 0x804DU, &mod_sw1, 1U) != I2C_OK) return -1;
+    if (gt911_read_reg(i2c, GT911_REG_MODULE_SWITCH1, &mod_sw1, 1U) != I2C_OK) return -1;
     if (gt911_write_reg(i2c, GT911_REG_POINT_STATUS, &zero, 1U) != I2C_OK) return -1;
 
     /* 3. Route PB5 to EXTI5 matching panel INT edge (0 = rising, 1 = falling) */
     AFIO->EXTICR2 = (AFIO->EXTICR2 & ~(0xFU << 4)) | (0x1U << 4);
+    
     if ((mod_sw1 & 0x03U) == 1U) {
         EXTI->FTSR |=  (1U << 5);
         EXTI->RTSR &= ~(1U << 5);
