@@ -3,6 +3,8 @@
 
 #include <stdint.h>
 
+/* ---------- Standard USB descriptors ---------- */
+
 struct usb_device_desc {
     uint8_t  bLength;             // Size of this descriptor (18 bytes)
     uint8_t  bDescriptorType;     // 0x01 for Device
@@ -19,6 +21,32 @@ struct usb_device_desc {
     uint8_t  iSerialNumber;       // Index of serial number string
     uint8_t  bNumConfigurations;  // Number of possible configurations
 } __attribute__((packed));
+_Static_assert(sizeof(struct usb_device_desc) == 18, "USB device descriptor must be 18 bytes");
+
+struct usb_configuration_desc {
+    uint8_t  bLength;             /* Size of this descriptor: (9 bytes) */
+    uint8_t  bDescriptorType;     /* USB_DESC_CONFIGURATION = 0x02 */
+    uint16_t wTotalLength;        /* Total bytes for all configuration descriptors */
+    uint8_t  bNumInterfaces;      /* Number of interfaces */
+    uint8_t  bConfigurationValue; /* Value used by SET_CONFIGURATION */
+    uint8_t  iConfiguration;      /* Configuration string index */
+    uint8_t  bmAttributes;        /* Bus powered / self powered / remote wakeup */
+    uint8_t  bMaxPower;           /* Maximum current in units of 2 mA */
+} __attribute__((packed));
+_Static_assert(sizeof(struct usb_configuration_desc) == 9, "USB configuration descriptor must be 9 bytes");
+
+struct usb_interface_desc {
+    uint8_t  bLength;             /* Size of this descriptor: (9 bytes) */
+    uint8_t  bDescriptorType;     /* USB_DESC_INTERFACE = 0x04 */
+    uint8_t  bInterfaceNumber;    /* Interface number */
+    uint8_t  bAlternateSetting;   /* Alternate setting number */
+    uint8_t  bNumEndpoints;       /* Number of endpoints excluding EP0 */
+    uint8_t  bInterfaceClass;     /* USB class */
+    uint8_t  bInterfaceSubClass;  /* USB subclass */
+    uint8_t  bInterfaceProtocol;  /* USB protocol */
+    uint8_t  iInterface;          /* Interface string index */
+} __attribute__((packed));
+_Static_assert(sizeof(struct usb_interface_desc) == 9, "USB interface descriptor must be 9 bytes");
 
 struct usb_endpoint_desc {
     uint8_t  bLength;             // Size of this descriptor (7 bytes)
@@ -28,12 +56,14 @@ struct usb_endpoint_desc {
     uint16_t wMaxPacketSize;      // Maximum packet size this endpoint can send/receive
     uint8_t  bInterval;           // Polling interval (used for Interrupt/Isochronous)
 } __attribute__((packed));
+_Static_assert(sizeof(struct usb_endpoint_desc) == 7, "USB endpoint descriptor must be 7 bytes");
 
-struct usb_string_desc {
+struct usb_langid_string_desc {
     uint8_t  bLength;             // Size of descriptor (2 + length of string in bytes)
     uint8_t  bDescriptorType;     // 0x03 for String
     uint16_t bString[];           // UTF-16LE characters (flexible array member)
 } __attribute__((packed));
+
 
 
 static uint8_t lc[7] = { 
@@ -73,7 +103,7 @@ static const uint8_t cfgd[] = {
     0x80,       // bmAttributes: Bus-powered, no remote wakeup
     0x32,       // bMaxPower: 100mA
 
-    /* Interface 0: CDC Communication */
+    /* Interface 0: CDC Communication Interface */
     9,          // bLength
     0x04,       // INTERFACE descriptor
     0,          // bInterfaceNumber
@@ -118,7 +148,7 @@ static const uint8_t cfgd[] = {
     0x08, 0x00, // wMaxPacketSize: 8 bytes
     0x0A,       // bInterval: 10
 
-    /* Interface 1: CDC Data */
+    /* Interface 1: CDC Data Interface */
     9,          // bLength
     0x04,       // INTERFACE descriptor
     1,          // bInterfaceNumber
@@ -129,7 +159,7 @@ static const uint8_t cfgd[] = {
     0x00,       // bInterfaceProtocol
     0,          // iInterface
 
-    /* Endpoint 1 IN: Bulk */
+    /* Endpoint 1 Bulk IN */
     7,          // bLength
     0x05,       // ENDPOINT descriptor
     0x81,       // bEndpointAddress: EP1 IN
@@ -137,7 +167,7 @@ static const uint8_t cfgd[] = {
     0x40, 0x00, // wMaxPacketSize: 64 bytes
     0x00,       // bInterval
 
-    /* Endpoint 1 OUT: Bulk */
+    /* Endpoint 1: Bulk OUT */
     7,          // bLength
     0x05,       // ENDPOINT descriptor
     0x01,       // bEndpointAddress: EP1 OUT
@@ -147,7 +177,7 @@ static const uint8_t cfgd[] = {
 };
 _Static_assert(sizeof(cfgd) == 67, "cfgd descriptor size drift");
 
-static const uint8_t str0[] = { 4, 0x03, 0x09, 0x04 };
+static const uint8_t str0[] = { 4, 0x03, 0x09, 0x04 }; // supported language id 
 
 
 

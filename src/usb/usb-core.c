@@ -11,7 +11,7 @@
 
 static uint8_t    usb_addr;
 static enum usb_ctrl_state_t  ctrl_pending;
-static uint8_t    ctrl_buf[128];
+static uint8_t    ctrl_buf[128]; /* internal buffer used for control transfers */
 static uint32_t   ctrl_len;
 static uint32_t   ctrl_pos;
 
@@ -263,7 +263,7 @@ int cdc_send_data(const uint8_t *data, uint32_t len) {
     return 0;
 }
 
-static void ep1++_out(void) {
+static void ep1_out(void) {
     uint8_t buf[64];
     uint32_t cnt = USB_BD_AT(1)->COUNT_RX & COUNT_NBYTES_MASK;
     ep_clear_ctr_rx(1);
